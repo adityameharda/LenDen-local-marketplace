@@ -3,6 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Create a LeniDeni account to start selling items in your local marketplace."
+    />
+    <meta name="theme-color" content="#007bff" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Register - LeniDeni</title>
     <link rel="stylesheet" href="/css/styles.css" />
   </head>
@@ -33,18 +39,45 @@
       <section class="form-card">
         <h2>Create your account</h2>
         <form id="registerForm" class="form-grid">
-          <input class="input" name="name" placeholder="Full name" required />
-          <input class="input" name="email" placeholder="Email" />
-          <input class="input" name="phone" placeholder="Phone" />
+          <input
+            class="input"
+            name="name"
+            placeholder="Full name"
+            autocomplete="name"
+            required
+          />
+          <input
+            class="input"
+            name="email"
+            placeholder="Email"
+            autocomplete="email"
+          />
+          <input
+            class="input"
+            name="phone"
+            placeholder="Phone"
+            autocomplete="tel"
+          />
           <input
             class="input"
             name="password"
             type="password"
             placeholder="Password"
+            autocomplete="new-password"
             required
           />
-          <input class="input" name="city" placeholder="City" />
-          <input class="input" name="state" placeholder="State" />
+          <input
+            class="input"
+            name="city"
+            placeholder="City"
+            autocomplete="address-level2"
+          />
+          <input
+            class="input"
+            name="state"
+            placeholder="State"
+            autocomplete="address-level1"
+          />
           <button class="btn" type="submit">Create account</button>
         </form>
         <div id="authLoader" class="loader">Creating account...</div>

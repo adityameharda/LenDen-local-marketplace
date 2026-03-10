@@ -3,6 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Login to your LeniDeni account to browse listings and manage your sales."
+    />
+    <meta name="theme-color" content="#007bff" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Login - LeniDeni</title>
     <link rel="stylesheet" href="/css/styles.css" />
   </head>
@@ -39,6 +45,7 @@
             name="email"
             type="email"
             placeholder="Email"
+            autocomplete="email"
             required
           />
           <input
@@ -46,6 +53,7 @@
             name="password"
             type="password"
             placeholder="Password"
+            autocomplete="current-password"
             required
           />
           <button class="btn" type="submit">Login</button>
