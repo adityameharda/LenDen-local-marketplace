@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const ApiError = require("../utils/apiError");
 const asyncHandler = require("../utils/asyncHandler");
+const { resolveCoordinates } = require("../utils/geocode");
 
 const signToken = (user) =>
   jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
@@ -33,6 +34,17 @@ const register = asyncHandler(async (req, res) => {
     throw new ApiError(409, "User already exists");
   }
 
+  const coordinates =
+    city && state
+      ? await resolveCoordinates({
+          city,
+          state,
+          lat,
+          lng,
+          fallback: [0, 0],
+        })
+      : null;
+
   const location =
     city && state
       ? {
@@ -40,7 +52,7 @@ const register = asyncHandler(async (req, res) => {
           state,
           coordinates: {
             type: "Point",
-            coordinates: [Number(lng) || 0, Number(lat) || 0],
+            coordinates,
           },
         }
       : undefined;
@@ -61,14 +73,13 @@ const register = asyncHandler(async (req, res) => {
 });
 
 const login = asyncHandler(async (req, res) => {
-  const { email, phone, password } = req.body;
+  const { email, password } = req.body;
 
-  if ((!email && !phone) || !password) {
-    throw new ApiError(400, "Email or phone and password are required");
+  if (!email || !password) {
+    throw new ApiError(400, "Email and password are required");
   }
 
-  const identityQuery = buildIdentityQuery(email, phone);
-  const user = identityQuery ? await User.findOne(identityQuery) : null;
+  const user = await User.findOne({ email });
   if (!user) {
     throw new ApiError(401, "Invalid credentials");
   }

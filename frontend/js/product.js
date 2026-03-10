@@ -7,6 +7,7 @@ const productId = urlParams.get("id");
 
 let currentUser = null;
 let currentProduct = null;
+let isFavorite = false;
 let contactSellerBtn = null;
 const contactModal = document.getElementById("contactModal");
 const contactClose = document.getElementById("contactClose");
@@ -14,6 +15,47 @@ const contactForm = document.getElementById("contactForm");
 const contactMeta = document.getElementById("contactMeta");
 
 const getId = (value) => api.getEntityId(value);
+
+const isOwnerViewing = () => {
+  if (!currentUser || !currentProduct) {
+    return false;
+  }
+  return getId(currentUser) === getId(currentProduct.seller);
+};
+
+const setupListingAction = () => {
+  if (!favoriteBtn || !currentProduct) {
+    return;
+  }
+
+  const isOwner = isOwnerViewing();
+  const isSold = currentProduct.status === "Sold";
+
+  if (isOwner) {
+    favoriteBtn.textContent = isSold ? "Listing already sold" : "Mark as sold";
+    favoriteBtn.classList.remove("secondary");
+    favoriteBtn.classList.add("btn");
+    favoriteBtn.disabled = isSold;
+  } else {
+    favoriteBtn.textContent = isFavorite
+      ? "Remove from favorites"
+      : "Save to favorites";
+    favoriteBtn.classList.add("secondary");
+    favoriteBtn.disabled = false;
+  }
+};
+
+const syncFavoriteState = async () => {
+  if (!currentProduct || !currentUser || isOwnerViewing()) {
+    isFavorite = false;
+    return;
+  }
+
+  const favorites = await api.request("/api/favorites");
+  isFavorite = favorites.some(
+    (fav) => getId(fav.product) === getId(currentProduct),
+  );
+};
 
 const loadProduct = async () => {
   if (!productDetails || !productId) {
@@ -73,6 +115,8 @@ const loadProduct = async () => {
 
     contactSellerBtn = document.getElementById("contactSellerBtn");
     updateContactSeller();
+    await syncFavoriteState();
+    setupListingAction();
 
     if (thumbnails) {
       document
@@ -133,8 +177,38 @@ const closeContactModal = () => {
 
 if (favoriteBtn) {
   favoriteBtn.addEventListener("click", async () => {
+    if (!currentProduct) {
+      return;
+    }
+
+    const isOwner = isOwnerViewing();
     try {
+      if (isOwner) {
+        await api.request(`/api/products/${productId}/sold`, {
+          method: "PATCH",
+        });
+        currentProduct.status = "Sold";
+        setupListingAction();
+        ui.setNotice("productNotice", "Listing marked as sold.");
+        return;
+      }
+
+      if (!currentUser) {
+        window.location.href = "/login.html";
+        return;
+      }
+
+      if (isFavorite) {
+        await api.request(`/api/favorites/${productId}`, { method: "DELETE" });
+        isFavorite = false;
+        setupListingAction();
+        ui.setNotice("productNotice", "Removed from favorites");
+        return;
+      }
+
       await api.request(`/api/favorites/${productId}`, { method: "POST" });
+      isFavorite = true;
+      setupListingAction();
       ui.setNotice("productNotice", "Saved to favorites");
     } catch (error) {
       ui.setNotice("productNotice", error.message);
@@ -214,4 +288,3 @@ document.addEventListener("click", (event) => {
 });
 
 init();
-

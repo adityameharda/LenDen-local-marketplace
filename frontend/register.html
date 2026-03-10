@@ -6,7 +6,7 @@
     <title>Register - LeniDeni</title>
     <link rel="stylesheet" href="/css/styles.css" />
   </head>
-  <body>
+  <body class="auth-page">
     <header class="navbar">
       <div class="container">
         <div class="brand">LeniDeni</div>
@@ -29,7 +29,7 @@
       </div>
     </header>
 
-    <main class="container">
+    <main class="container auth-shell">
       <section class="form-card">
         <h2>Create your account</h2>
         <form id="registerForm" class="form-grid">
@@ -45,20 +45,6 @@
           />
           <input class="input" name="city" placeholder="City" />
           <input class="input" name="state" placeholder="State" />
-          <input
-            class="input"
-            name="lat"
-            placeholder="Latitude"
-            type="number"
-            step="0.0001"
-          />
-          <input
-            class="input"
-            name="lng"
-            placeholder="Longitude"
-            type="number"
-            step="0.0001"
-          />
           <button class="btn" type="submit">Create account</button>
         </form>
         <div id="authLoader" class="loader">Creating account...</div>

@@ -59,6 +59,18 @@ const api = {
     const res = await fetch(`${api.baseUrl}${path}`, { ...options, headers });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
+      if (res.status === 401 && token) {
+        api.clearSession();
+        if (typeof window !== "undefined") {
+          const currentPath = window.location.pathname || "";
+          const isAuthPage =
+            currentPath.includes("/login.html") ||
+            currentPath.includes("/register.html");
+          if (!isAuthPage) {
+            window.location.href = "/login.html?expired=1";
+          }
+        }
+      }
       const message = data.message || "Request failed";
       throw new Error(message);
     }

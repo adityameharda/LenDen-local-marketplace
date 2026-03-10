@@ -1,6 +1,7 @@
 const Product = require("../models/Product");
 const ApiError = require("../utils/apiError");
 const asyncHandler = require("../utils/asyncHandler");
+const { resolveCoordinates } = require("../utils/geocode");
 
 const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
 
@@ -41,6 +42,13 @@ const createProduct = asyncHandler(async (req, res) => {
   }
 
   const images = (req.files || []).map((file) => `/uploads/${file.filename}`);
+  const coordinates = await resolveCoordinates({
+    city,
+    state,
+    lat,
+    lng,
+    fallback: [0, 0],
+  });
 
   const product = await Product.create({
     title,
@@ -53,7 +61,7 @@ const createProduct = asyncHandler(async (req, res) => {
       state,
       coordinates: {
         type: "Point",
-        coordinates: [Number(lng) || 0, Number(lat) || 0],
+        coordinates,
       },
     },
     locationName,
@@ -76,7 +84,7 @@ const getProducts = asyncHandler(async (req, res) => {
     locationName,
   } = req.query;
 
-  const query = { isApproved: true };
+  const query = { isApproved: true, status: "Available" };
 
   const andConditions = [];
   if (search) {
@@ -162,34 +170,33 @@ const updateProduct = asyncHandler(async (req, res) => {
     }
   });
 
-  if (hasOwn(req.body, "city") || hasOwn(req.body, "state")) {
-    product.location = {
-      city: req.body.city || product.location.city,
-      state: req.body.state || product.location.state,
-      coordinates: product.location.coordinates,
-    };
-  }
-
-  if (hasOwn(req.body, "lat") || hasOwn(req.body, "lng")) {
-    const currentCoordinates = Array.isArray(product.location?.coordinates?.coordinates)
+  if (
+    hasOwn(req.body, "city") ||
+    hasOwn(req.body, "state") ||
+    hasOwn(req.body, "lat") ||
+    hasOwn(req.body, "lng")
+  ) {
+    const nextCity = req.body.city || product.location?.city;
+    const nextState = req.body.state || product.location?.state;
+    const currentCoordinates = Array.isArray(
+      product.location?.coordinates?.coordinates,
+    )
       ? product.location.coordinates.coordinates
       : [0, 0];
-    const nextLng =
-      req.body.lng !== undefined && req.body.lng !== ""
-        ? Number(req.body.lng)
-        : currentCoordinates[0];
-    const nextLat =
-      req.body.lat !== undefined && req.body.lat !== ""
-        ? Number(req.body.lat)
-        : currentCoordinates[1];
-    const resolvedLng = Number.isFinite(nextLng) ? nextLng : currentCoordinates[0];
-    const resolvedLat = Number.isFinite(nextLat) ? nextLat : currentCoordinates[1];
+    const resolvedCoordinates = await resolveCoordinates({
+      city: nextCity,
+      state: nextState,
+      lat: req.body.lat,
+      lng: req.body.lng,
+      fallback: currentCoordinates,
+    });
+
     product.location = {
-      city: product.location.city,
-      state: product.location.state,
+      city: nextCity,
+      state: nextState,
       coordinates: {
         type: "Point",
-        coordinates: [resolvedLng, resolvedLat],
+        coordinates: resolvedCoordinates,
       },
     };
   }

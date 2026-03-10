@@ -1,5 +1,14 @@
 const loginForm = document.getElementById("loginForm");
 
+const initExpiredSessionNotice = () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("expired") === "1") {
+    ui.setNotice("authNotice", "Session expired. Please log in again.");
+  }
+};
+
+initExpiredSessionNotice();
+
 if (loginForm) {
   loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();

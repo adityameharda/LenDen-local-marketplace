@@ -61,6 +61,7 @@ const renderFavorites = (favorites) => {
   favoritesGrid.innerHTML = favorites
     .map((fav) => {
       const imageUrl = ui.resolveImage(fav.product?.images || []);
+      const productId = api.getEntityId(fav.product);
       const locationText =
         fav.product?.locationName ||
         [fav.product?.location?.city, fav.product?.location?.state]
@@ -78,12 +79,36 @@ const renderFavorites = (favorites) => {
         <div class="card-body">
           <h4>${fav.product?.title || "Listing"}</h4>
           <div class="meta">${locationText}</div>
-          <a class="btn" href="/product.html?id=${fav.product?._id}">View</a>
+          <div class="hero-cta">
+            <a class="btn" href="/product.html?id=${productId}">View</a>
+            <button class="btn secondary" type="button" data-unfavorite="${productId}">
+              Remove favorite
+            </button>
+          </div>
         </div>
       </div>
     `;
     })
     .join("");
+
+  document.querySelectorAll("[data-unfavorite]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const targetProductId = btn.dataset.unfavorite;
+      if (!targetProductId) {
+        return;
+      }
+
+      try {
+        await api.request(`/api/favorites/${targetProductId}`, {
+          method: "DELETE",
+        });
+        ui.setNotice("dashNotice", "Removed from favorites.");
+        loadDashboard();
+      } catch (error) {
+        ui.setNotice("dashNotice", error.message);
+      }
+    });
+  });
 };
 
 const loadDashboard = async () => {
@@ -137,4 +162,3 @@ if (createForm) {
 }
 
 loadDashboard();
-

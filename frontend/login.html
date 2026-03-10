@@ -6,7 +6,7 @@
     <title>Login - LeniDeni</title>
     <link rel="stylesheet" href="/css/styles.css" />
   </head>
-  <body>
+  <body class="auth-page">
     <header class="navbar">
       <div class="container">
         <div class="brand">LeniDeni</div>
@@ -29,13 +29,18 @@
       </div>
     </header>
 
-    <main class="container">
+    <main class="container auth-shell">
       <section class="form-card">
         <h2>Welcome back</h2>
-        <p class="meta">Login with your email or phone.</p>
+        <p class="meta">Login with your email and password.</p>
         <form id="loginForm" class="form-grid">
-          <input class="input" name="email" placeholder="Email (optional)" />
-          <input class="input" name="phone" placeholder="Phone (optional)" />
+          <input
+            class="input"
+            name="email"
+            type="email"
+            placeholder="Email"
+            required
+          />
           <input
             class="input"
             name="password"

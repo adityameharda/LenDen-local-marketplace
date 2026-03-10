@@ -2,6 +2,7 @@ const User = require("../models/User");
 const Product = require("../models/Product");
 const ApiError = require("../utils/apiError");
 const asyncHandler = require("../utils/asyncHandler");
+const { resolveCoordinates } = require("../utils/geocode");
 
 const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
 
@@ -25,22 +26,27 @@ const updateMe = asyncHandler(async (req, res) => {
     hasOwn(req.body, "lat") ||
     hasOwn(req.body, "lng")
   ) {
-    const currentCoordinates = Array.isArray(user.location?.coordinates?.coordinates)
+    const nextCity = city || user.location?.city;
+    const nextState = state || user.location?.state;
+    const currentCoordinates = Array.isArray(
+      user.location?.coordinates?.coordinates,
+    )
       ? user.location.coordinates.coordinates
       : [0, 0];
-    const nextLng =
-      lng !== undefined && lng !== "" ? Number(lng) : currentCoordinates[0];
-    const nextLat =
-      lat !== undefined && lat !== "" ? Number(lat) : currentCoordinates[1];
+    const resolvedCoordinates = await resolveCoordinates({
+      city: nextCity,
+      state: nextState,
+      lat,
+      lng,
+      fallback: currentCoordinates,
+    });
+
     user.location = {
-      city: city || user.location?.city,
-      state: state || user.location?.state,
+      city: nextCity,
+      state: nextState,
       coordinates: {
         type: "Point",
-        coordinates: [
-          Number.isFinite(nextLng) ? nextLng : currentCoordinates[0],
-          Number.isFinite(nextLat) ? nextLat : currentCoordinates[1],
-        ],
+        coordinates: resolvedCoordinates,
       },
     };
   }
@@ -50,7 +56,10 @@ const updateMe = asyncHandler(async (req, res) => {
 });
 
 const getMyListings = asyncHandler(async (req, res) => {
-  const listings = await Product.find({ seller: req.user._id }).sort({
+  const listings = await Product.find({
+    seller: req.user._id,
+    status: "Available",
+  }).sort({
     createdAt: -1,
   });
   res.json(listings);
