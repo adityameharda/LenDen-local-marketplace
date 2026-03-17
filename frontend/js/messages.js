@@ -11,6 +11,7 @@ let activeThreadKey = null;
 let pollHandle = null;
 let pendingThread = null;
 let editingMessageId = null;
+let openMessageMenuId = null;
 
 const editIcon = `
   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -25,6 +26,15 @@ const deleteIcon = `
   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
     <path
       d="M9 3h6l1 2h4v2H4V5h4l1-2Zm1 6h2v8h-2V9Zm4 0h2v8h-2V9ZM7 9h2v8H7V9Zm0 11a2 2 0 0 1-2-2V8h14v10a2 2 0 0 1-2 2H7Z"
+      fill="currentColor"
+    />
+  </svg>
+`;
+
+const menuIcon = `
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path
+      d="M12 7a1.75 1.75 0 1 0 0-3.5A1.75 1.75 0 0 0 12 7Zm0 6.75A1.75 1.75 0 1 0 12 10.25a1.75 1.75 0 0 0 0 3.5ZM12 20.5a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Z"
       fill="currentColor"
     />
   </svg>
@@ -195,6 +205,42 @@ const renderThreadList = () => {
   });
 };
 
+const closeMessageMenus = () => {
+  openMessageMenuId = null;
+  document.querySelectorAll(".chat-menu-panel.open").forEach((panel) => {
+    panel.classList.remove("open");
+  });
+  document
+    .querySelectorAll("[data-message-menu-trigger][aria-expanded='true']")
+    .forEach((trigger) => {
+      trigger.setAttribute("aria-expanded", "false");
+    });
+};
+
+const toggleMessageMenu = (messageId) => {
+  const nextOpenId = openMessageMenuId === messageId ? null : messageId;
+  closeMessageMenus();
+  openMessageMenuId = nextOpenId;
+
+  if (!openMessageMenuId) {
+    return;
+  }
+
+  const panel = document.querySelector(
+    `[data-message-menu-panel="${openMessageMenuId}"]`,
+  );
+  const trigger = document.querySelector(
+    `[data-message-menu-trigger="${openMessageMenuId}"]`,
+  );
+
+  if (panel) {
+    panel.classList.add("open");
+  }
+  if (trigger) {
+    trigger.setAttribute("aria-expanded", "true");
+  }
+};
+
 const renderChat = () => {
   if (!chatBody || !chatHeader || !chatForm) {
     return;
@@ -225,32 +271,47 @@ const renderChat = () => {
       const canManage = isSelf && !message.isDeleted;
       const actions = canManage
         ? `
-          <div class="chat-bubble-actions">
-            <button class="icon-btn small" type="button" data-edit-message="${message._id}" aria-label="Edit message">
-              ${editIcon}
+          <div class="chat-menu" data-message-menu>
+            <button
+              class="icon-btn small chat-menu-trigger"
+              type="button"
+              data-message-menu-trigger="${message._id}"
+              aria-label="Message options"
+              aria-expanded="${openMessageMenuId === message._id ? "true" : "false"}"
+            >
+              ${menuIcon}
             </button>
-            <button class="icon-btn small danger" type="button" data-delete-message="${message._id}" aria-label="Delete message">
-              ${deleteIcon}
-            </button>
+            <div class="chat-menu-panel ${openMessageMenuId === message._id ? "open" : ""}" data-message-menu-panel="${message._id}">
+              <button class="chat-menu-item" type="button" data-edit-message="${message._id}">
+                ${editIcon}
+                <span>Edit</span>
+              </button>
+              <button class="chat-menu-item danger" type="button" data-delete-message="${message._id}">
+                ${deleteIcon}
+                <span>Delete</span>
+              </button>
+            </div>
           </div>
         `
         : "";
       return `
       <div class="chat-bubble ${isSelf ? "self" : ""}">
-        <div class="meta">${ui.escapeHtml(
-          `${message.sender?.name || "Someone"} - ${timestamp}`,
-        )}</div>
+        <div class="chat-bubble-header">
+          <div class="meta">${ui.escapeHtml(
+            `${message.sender?.name || "Someone"} - ${timestamp}`,
+          )}</div>
+          ${actions}
+        </div>
         <div class="${message.isDeleted ? "message-deleted" : ""}">${ui.escapeHtml(
           message.content,
         )}</div>
         ${
           messageState.length
             ? `<div class="chat-message-state">${ui.escapeHtml(
-                messageState.join(" • "),
+                messageState.join(" - "),
               )}</div>`
             : ""
         }
-        ${actions}
       </div>
     `;
     })
@@ -267,8 +328,22 @@ const renderChat = () => {
 };
 
 const bindMessageActions = () => {
+  document.querySelectorAll("[data-message-menu-trigger]").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleMessageMenu(btn.dataset.messageMenuTrigger);
+    });
+  });
+
+  document.querySelectorAll("[data-message-menu]").forEach((menu) => {
+    menu.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+  });
+
   document.querySelectorAll("[data-edit-message]").forEach((btn) => {
     btn.addEventListener("click", () => {
+      closeMessageMenus();
       const thread = threads.find((item) => item.key === activeThreadKey);
       const message = thread?.messages.find(
         (item) => item._id === btn.dataset.editMessage,
@@ -295,6 +370,7 @@ const bindMessageActions = () => {
 
   document.querySelectorAll("[data-delete-message]").forEach((btn) => {
     btn.addEventListener("click", async () => {
+      closeMessageMenus();
       const confirmed = window.confirm("Delete this message?");
       if (!confirmed) {
         return;
@@ -318,6 +394,7 @@ const bindMessageActions = () => {
 
 const resetComposer = () => {
   editingMessageId = null;
+  closeMessageMenus();
   chatForm?.reset();
   if (chatSubmitBtn) {
     chatSubmitBtn.textContent = "Send";
@@ -488,6 +565,10 @@ const init = async () => {
     });
   }
 
+  document.addEventListener("click", () => {
+    closeMessageMenus();
+  });
+
   await loadMessages();
 
   if (!pollHandle) {
@@ -496,4 +577,3 @@ const init = async () => {
 };
 
 init();
-
