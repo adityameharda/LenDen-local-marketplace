@@ -12,6 +12,24 @@ let pollHandle = null;
 let pendingThread = null;
 let editingMessageId = null;
 
+const editIcon = `
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path
+      d="M4 20h4.75L19 9.75 14.25 5 4 15.25V20Zm2-1.5v-2.38l8.25-8.24 2.37 2.37-8.24 8.25H6Zm11.96-9.29 1.08-1.08a1.5 1.5 0 0 0 0-2.12l-1.05-1.05a1.5 1.5 0 0 0-2.12 0l-1.08 1.08 3.17 3.17Z"
+      fill="currentColor"
+    />
+  </svg>
+`;
+
+const deleteIcon = `
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path
+      d="M9 3h6l1 2h4v2H4V5h4l1-2Zm1 6h2v8h-2V9Zm4 0h2v8h-2V9ZM7 9h2v8H7V9Zm0 11a2 2 0 0 1-2-2V8h14v10a2 2 0 0 1-2 2H7Z"
+      fill="currentColor"
+    />
+  </svg>
+`;
+
 const normalizeId = (value) => (value ? String(value) : "");
 
 const extractId = (value) => {
@@ -209,10 +227,10 @@ const renderChat = () => {
         ? `
           <div class="chat-bubble-actions">
             <button class="icon-btn small" type="button" data-edit-message="${message._id}" aria-label="Edit message">
-              Edit
+              ${editIcon}
             </button>
-            <button class="icon-btn small" type="button" data-delete-message="${message._id}" aria-label="Delete message">
-              Delete
+            <button class="icon-btn small danger" type="button" data-delete-message="${message._id}" aria-label="Delete message">
+              ${deleteIcon}
             </button>
           </div>
         `
