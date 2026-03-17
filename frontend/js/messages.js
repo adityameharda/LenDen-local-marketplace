@@ -151,14 +151,16 @@ const renderThreadList = () => {
         thread.unreadCount > 0
           ? `<span class="chat-thread-badge">${thread.unreadCount}</span>`
           : "";
-      const otherName = thread.otherUser?.name || "User";
+      const otherName = ui.escapeHtml(thread.otherUser?.name || "User");
       return `
       <button class="chat-thread-item ${isActive ? "active" : ""}" data-thread-key="${thread.key}">
         <div class="chat-thread-title">
-          ${thread.productTitle}
+          ${ui.escapeHtml(thread.productTitle)}
           ${badge}
         </div>
-        <div class="chat-thread-meta">${otherName} - ${preview}</div>
+        <div class="chat-thread-meta">${otherName} - ${ui.escapeHtml(
+          preview,
+        )}</div>
       </button>
     `;
     })
@@ -193,8 +195,10 @@ const renderChat = () => {
       const timestamp = new Date(message.createdAt).toLocaleString();
       return `
       <div class="chat-bubble ${isSelf ? "self" : ""}">
-        <div class="meta">${message.sender?.name || "Someone"} - ${timestamp}</div>
-        <div>${message.content}</div>
+        <div class="meta">${ui.escapeHtml(
+          `${message.sender?.name || "Someone"} - ${timestamp}`,
+        )}</div>
+        <div>${ui.escapeHtml(message.content)}</div>
       </div>
     `;
     })

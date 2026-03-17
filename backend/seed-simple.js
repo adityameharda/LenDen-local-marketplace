@@ -2,10 +2,11 @@ const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const Product = require("./models/Product");
 const User = require("./models/User");
+const connectDb = require("./config/db");
 
 dotenv.config();
 
-const SAMPLE_PRODUCTS = [
+const sampleProducts = [
   {
     title: "iPhone 15 Pro Max",
     description:
@@ -177,31 +178,13 @@ const SAMPLE_PRODUCTS = [
 ];
 
 const seedDatabase = async () => {
-  const uri = process.env.MONGODB_URI;
-  console.log("📊 LeniDeni Database Seed Script\n");
-  console.log(
-    `MongoDB URI: ${uri ? uri.split("@")[1] || "configured" : "NOT SET"}`,
-  );
-
-  if (!uri) {
-    console.error(
-      "❌ MONGODB_URI environment variable is not set in .env file",
-    );
-    process.exit(1);
-  }
-
   try {
-    console.log("\n🔗 Connecting to MongoDB...");
-    await mongoose.connect(uri, {
-      autoIndex: true,
-      serverSelectionTimeoutMS: 60000,
-      socketTimeoutMS: 60000,
-      connectTimeoutMS: 60000,
-    });
-    console.log("✅ Connected to MongoDB\n");
+    console.log("LeniDeni database seed script");
+    console.log("Connecting to MongoDB...");
+    await connectDb();
+    console.log("Connected to MongoDB\n");
 
-    // Find or create seller
-    console.log("👤 Setting up demo seller...");
+    console.log("Setting up demo seller...");
     let seller = await User.findOne({ email: "seller@demo.com" });
 
     if (!seller) {
@@ -216,70 +199,70 @@ const seedDatabase = async () => {
           coordinates: { type: "Point", coordinates: [-122.4194, 37.7749] },
         },
       });
-      console.log("✅ Created new demo seller account (seller@demo.com)\n");
+      console.log("Created new demo seller account (seller@demo.com)\n");
     } else {
-      console.log(`✅ Using existing seller: ${seller.email}\n`);
+      console.log(`Using existing seller: ${seller.email}\n`);
     }
 
-    // Clear existing products
-    console.log("🗑️  Clearing existing products...");
+    console.log("Clearing existing products...");
     const deleted = await Product.deleteMany({});
-    console.log(`✅ Deleted ${deleted.deletedCount} existing products\n`);
+    console.log(`Deleted ${deleted.deletedCount} existing products\n`);
 
-    // Add seller to all products
-    const productsWithSeller = SAMPLE_PRODUCTS.map((p) => ({
-      ...p,
+    const productsWithSeller = sampleProducts.map((product) => ({
+      ...product,
       seller: seller._id,
+      isApproved: true,
     }));
 
-    // Insert products
-    console.log("📦 Adding sample products...");
+    console.log("Adding sample products...");
     const created = await Product.insertMany(productsWithSeller);
-    console.log(`✅ Successfully added ${created.length} products\n`);
+    console.log(`Successfully added ${created.length} products\n`);
 
-    // Display results
-    console.log("📋 Products Added:");
-    console.log("─".repeat(70));
-    created.forEach((p, i) => {
-      console.log(`${i + 1}. ${p.title}`);
+    console.log("Products added:");
+    console.log("-".repeat(70));
+    created.forEach((product, index) => {
+      console.log(`${index + 1}. ${product.title}`);
       console.log(
-        `   Category: ${p.category} | Condition: ${p.condition} | Price: $${p.price}`,
+        `   Category: ${product.category} | Condition: ${product.condition} | Price: $${product.price}`,
       );
-      console.log(`   Location: ${p.location.city}, ${p.location.state}`);
+      console.log(
+        `   Location: ${product.location.city}, ${product.location.state}`,
+      );
       console.log("");
     });
 
-    console.log("─".repeat(70));
-    console.log("\n✨ Database seeding completed successfully!");
-    console.log("\n📍 Next steps:");
+    console.log("-".repeat(70));
+    console.log("\nDatabase seeding completed successfully!");
+    console.log("\nNext steps:");
     console.log("   1. Visit http://localhost:5000 to browse products");
     console.log("   2. Login to view dashboard and create more listings");
     console.log(
       "   3. Use filter form to search by category, price, and location\n",
     );
 
+    await mongoose.disconnect();
     process.exit(0);
   } catch (error) {
-    console.error("\n❌ Error during seeding:", error.message);
+    console.error("\nError during seeding:", error.message);
     console.error("\nTroubleshooting:");
 
     if (
       error.message.includes("ETIMEOUT") ||
-      error.message.includes("ENOTFOUND")
+      error.message.includes("ENOTFOUND") ||
+      error.message.includes("ECONNREFUSED")
     ) {
-      console.error("   • MongoDB Atlas is unreachable");
-      console.error("   • Check your internet connection");
+      console.error("   - MongoDB Atlas is unreachable");
+      console.error("   - Check your internet connection");
       console.error(
-        "   • Verify MongoDB cluster is running at: https://cloud.mongodb.com",
+        "   - Verify MongoDB cluster is running at: https://cloud.mongodb.com",
       );
-      console.error(
-        "   • Check if IP is whitelisted in MongoDB Network Access",
-      );
+      console.error("   - Check if IP is whitelisted in MongoDB Network Access");
     } else if (error.message.includes("auth")) {
-      console.error("   • Authentication error with MongoDB");
-      console.error("   • Verify username and password in MONGODB_URI");
+      console.error("   - Authentication error with MongoDB");
+      console.error("   - Verify username and password in MONGODB_URI");
     }
 
+    await mongoose.disconnect().catch(() => {});
     process.exit(1);
   }
 };

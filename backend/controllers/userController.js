@@ -58,11 +58,27 @@ const updateMe = asyncHandler(async (req, res) => {
 const getMyListings = asyncHandler(async (req, res) => {
   const listings = await Product.find({
     seller: req.user._id,
-    status: "Available",
-  }).sort({
-    createdAt: -1,
-  });
+  })
+    .populate("buyer", "name phone")
+    .sort({
+      soldAt: -1,
+      createdAt: -1,
+    });
   res.json(listings);
 });
 
-module.exports = { getMe, updateMe, getMyListings };
+const getMyPurchases = asyncHandler(async (req, res) => {
+  const purchases = await Product.find({
+    buyer: req.user._id,
+    status: "Sold",
+  })
+    .populate("seller", "name phone")
+    .sort({
+      soldAt: -1,
+      updatedAt: -1,
+    });
+
+  res.json(purchases);
+});
+
+module.exports = { getMe, updateMe, getMyListings, getMyPurchases };

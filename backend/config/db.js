@@ -1,3 +1,4 @@
+const dns = require("dns");
 const mongoose = require("mongoose");
 
 const connectDb = async () => {
@@ -5,6 +6,8 @@ const connectDb = async () => {
   if (!uri) {
     throw new Error("MONGODB_URI is not set");
   }
+
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
   await mongoose.connect(uri, {
     autoIndex: true,

@@ -7,7 +7,7 @@
       name="description"
       content="Login to your LeniDeni account to browse listings and manage your sales."
     />
-    <meta name="theme-color" content="#007bff" />
+    <meta name="theme-color" content="#1555b8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Login - LeniDeni</title>
     <link rel="stylesheet" href="/css/styles.css" />
@@ -38,14 +38,13 @@
     <main class="container auth-shell">
       <section class="form-card">
         <h2>Welcome back</h2>
-        <p class="meta">Login with your email and password.</p>
+        <p class="meta">Login with your email or phone and password.</p>
         <form id="loginForm" class="form-grid">
           <input
             class="input"
-            name="email"
-            type="email"
-            placeholder="Email"
-            autocomplete="email"
+            name="identifier"
+            placeholder="Email or phone"
+            autocomplete="username"
             required
           />
           <input

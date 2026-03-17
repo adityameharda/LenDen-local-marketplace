@@ -1,12 +1,10 @@
 const dotenv = require("dotenv");
-const dns = require("dns");
-const app = require("./app");
-const connectDb = require("./config/db");
-const ensureAdmin = require("./utils/ensureAdmin");
 
 dotenv.config();
 
-dns.setServers(["8.8.8.8", "1.1.1.1"]);
+const app = require("./app");
+const connectDb = require("./config/db");
+const ensureAdmin = require("./utils/ensureAdmin");
 
 const PORT = process.env.PORT || 5000;
 

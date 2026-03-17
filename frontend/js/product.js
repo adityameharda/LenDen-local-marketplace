@@ -23,6 +23,13 @@ const isOwnerViewing = () => {
   return getId(currentUser) === getId(currentProduct.seller);
 };
 
+const isBuyerViewing = () => {
+  if (!currentUser || !currentProduct) {
+    return false;
+  }
+  return getId(currentUser) === getId(currentProduct.buyer);
+};
+
 const setupListingAction = () => {
   if (!favoriteBtn || !currentProduct) {
     return;
@@ -32,10 +39,20 @@ const setupListingAction = () => {
   const isSold = currentProduct.status === "Sold";
 
   if (isOwner) {
-    favoriteBtn.textContent = isSold ? "Listing already sold" : "Mark as sold";
+    favoriteBtn.textContent = !isSold
+      ? "Mark as sold"
+      : currentProduct.buyer
+        ? "Update buyer"
+        : "Assign buyer";
     favoriteBtn.classList.remove("secondary");
     favoriteBtn.classList.add("btn");
-    favoriteBtn.disabled = isSold;
+    favoriteBtn.disabled = false;
+  } else if (isSold) {
+    favoriteBtn.classList.add("secondary");
+    favoriteBtn.textContent = isBuyerViewing()
+      ? "Purchased item"
+      : "Listing sold";
+    favoriteBtn.disabled = true;
   } else {
     favoriteBtn.textContent = isFavorite
       ? "Remove from favorites"
@@ -68,18 +85,28 @@ const loadProduct = async () => {
     currentProduct = product;
     const images = Array.isArray(product.images) ? product.images : [];
     const primaryImage = ui.resolveImage(images);
+    const safePrimaryImage = ui.escapeHtml(primaryImage);
     const locationText =
       product.locationName ||
       [product.location?.city, product.location?.state]
         .filter(Boolean)
         .join(", ");
+    const safeTitle = ui.escapeHtml(product.title);
+    const safeCategory = ui.escapeHtml(product.category);
+    const safeDescription = ui.escapeHtml(product.description);
+    const sellerLine = [
+      product.seller?.name || "Unknown",
+      product.seller?.phone || "",
+    ]
+      .filter(Boolean)
+      .join(" - ");
     const thumbnails = images
       .filter((img) => img && img !== primaryImage)
       .slice(0, 4)
       .map(
         (img) =>
-          `<button class="thumb" type="button" data-image="${img}">
-            <img src="${img}" alt="${product.title}" loading="lazy" />
+          `<button class="thumb" type="button" data-image="${ui.escapeHtml(img)}">
+            <img src="${ui.escapeHtml(img)}" alt="${safeTitle}" loading="lazy" />
           </button>`,
       )
       .join("");
@@ -89,21 +116,35 @@ const loadProduct = async () => {
           <div class="product-image" id="primaryImage">
             ${
               primaryImage
-                ? `<img src="${primaryImage}" alt="${product.title}" />`
+                ? `<img src="${safePrimaryImage}" alt="${safeTitle}" />`
                 : `<div class="media-fallback">No image</div>`
             }
           </div>
           ${thumbnails ? `<div class="product-thumbs">${thumbnails}</div>` : ""}
         </div>
         <div class="product-info">
-          <span class="tag">${product.category}</span>
-          <h2>${product.title}</h2>
+          <span class="tag">${safeCategory}</span>
+          <h2>${safeTitle}</h2>
           <div class="price">${ui.currency(product.price)}</div>
-          <p>${product.description}</p>
-          <div class="meta">${product.condition} - ${locationText}</div>
-          <div class="meta">Seller: ${product.seller?.name || "Unknown"} ${
-            product.seller?.phone ? `- ${product.seller.phone}` : ""
-          }</div>
+          <p>${safeDescription}</p>
+          <div class="meta">${ui.escapeHtml(
+            [product.condition, locationText].filter(Boolean).join(" - "),
+          )}</div>
+          <div class="meta">Seller: ${ui.escapeHtml(sellerLine)}</div>
+          ${
+            product.buyer
+              ? `<div class="meta">Buyer: ${ui.escapeHtml(
+                  product.buyer.name || "Assigned buyer",
+                )}</div>`
+              : ""
+          }
+          ${
+            product.soldAt
+              ? `<div class="meta">Sold on ${ui.escapeHtml(
+                  ui.date(product.soldAt),
+                )}</div>`
+              : ""
+          }
           <div class="hero-cta">
             <button class="btn" id="contactSellerBtn" type="button">
               Contact seller
@@ -126,7 +167,9 @@ const loadProduct = async () => {
             const image = btn.dataset.image;
             const target = document.getElementById("primaryImage");
             if (target) {
-              target.innerHTML = `<img src="${image}" alt="${product.title}" />`;
+              target.innerHTML = `<img src="${ui.escapeHtml(
+                image,
+              )}" alt="${safeTitle}" />`;
             }
           });
         });
@@ -184,17 +227,33 @@ if (favoriteBtn) {
     const isOwner = isOwnerViewing();
     try {
       if (isOwner) {
-        await api.request(`/api/products/${productId}/sold`, {
-          method: "PATCH",
+        await sales.openMarkSold({
+          productId,
+          title: currentProduct.title,
+          buyerId: currentProduct.buyer?._id || "",
+          onSuccess: async (result) => {
+            if (result.product) {
+              currentProduct = result.product;
+            } else {
+              currentProduct.status = "Sold";
+            }
+            await loadProduct();
+            setupListingAction();
+            ui.setNotice(
+              "productNotice",
+              result.message || "Listing marked as sold.",
+            );
+          },
         });
-        currentProduct.status = "Sold";
-        setupListingAction();
-        ui.setNotice("productNotice", "Listing marked as sold.");
         return;
       }
 
       if (!currentUser) {
         window.location.href = "/login.html";
+        return;
+      }
+
+      if (currentProduct.status === "Sold") {
         return;
       }
 
@@ -222,6 +281,8 @@ const init = async () => {
   updateContactSeller();
   if (!currentUser && productNotice) {
     productNotice.textContent = "Log in to save this listing.";
+  } else if (isBuyerViewing() && productNotice) {
+    productNotice.textContent = "This listing is in your purchased items.";
   }
 };
 

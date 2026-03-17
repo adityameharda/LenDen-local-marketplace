@@ -9,6 +9,11 @@ const loadAdmin = async () => {
 
   ui.showLoader("adminLoader", true);
   try {
+    const currentUser = await auth.ensureUser();
+    if (!currentUser || currentUser.role !== "admin") {
+      throw new Error("Admin access required");
+    }
+
     const [stats, users, listings] = await Promise.all([
       api.request("/api/admin/stats"),
       api.request("/api/admin/users"),
@@ -26,9 +31,9 @@ const loadAdmin = async () => {
       .map(
         (user) => `
         <tr>
-          <td>${user.name}</td>
-          <td>${user.email || ""}</td>
-          <td>${user.phone || ""}</td>
+          <td>${ui.escapeHtml(user.name)}</td>
+          <td>${ui.escapeHtml(user.email || "")}</td>
+          <td>${ui.escapeHtml(user.phone || "")}</td>
           <td>${user.isBlocked ? "Blocked" : "Active"}</td>
           <td>
             <button class="btn secondary" data-block="${user._id}">${
@@ -50,8 +55,8 @@ const loadAdmin = async () => {
           : `<button class="btn secondary" data-approve="${listing._id}">Approve</button>`;
         return `
         <tr>
-          <td>${listing.title}</td>
-          <td>${listing.category}</td>
+          <td>${ui.escapeHtml(listing.title)}</td>
+          <td>${ui.escapeHtml(listing.category)}</td>
           <td>${statusPill}</td>
           <td>
             ${approveButton}

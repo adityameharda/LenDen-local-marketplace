@@ -11,11 +11,30 @@ const ui = {
       el.textContent = message;
     }
   },
+  escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  },
   currency(value) {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
     }).format(value || 0);
+  },
+  date(value) {
+    if (!value) {
+      return "";
+    }
+
+    return new Date(value).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   },
   resolveImage(images = []) {
     if (!Array.isArray(images)) {
@@ -73,6 +92,160 @@ const auth = {
     document.querySelectorAll("[data-logout]").forEach((btn) => {
       btn.addEventListener("click", () => auth.logout());
     });
+  },
+};
+
+const sales = {
+  overlay: null,
+  form: null,
+  select: null,
+  title: null,
+  helper: null,
+  loader: null,
+  notice: null,
+  current: null,
+  ensureModal() {
+    if (this.overlay) {
+      return;
+    }
+
+    const overlay = document.createElement("div");
+    overlay.id = "saleModal";
+    overlay.className = "modal-overlay";
+    overlay.innerHTML = `
+      <div class="modal">
+        <div class="modal-header">
+          <h3 id="saleModalTitle">Mark listing as sold</h3>
+          <button class="icon-btn" type="button" id="saleModalClose" aria-label="Close">
+            X
+          </button>
+        </div>
+        <p class="meta" id="saleModalHelper"></p>
+        <form id="saleModalForm" class="form-grid">
+          <select class="input" id="saleBuyerSelect" name="buyerId"></select>
+          <div class="hero-cta">
+            <button class="btn" type="submit">Confirm sale</button>
+            <button class="btn secondary" type="button" id="saleModalCancel">
+              Cancel
+            </button>
+          </div>
+        </form>
+        <div id="saleModalLoader" class="loader">Saving sale...</div>
+        <p id="saleModalNotice" class="notice"></p>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    this.overlay = overlay;
+    this.form = document.getElementById("saleModalForm");
+    this.select = document.getElementById("saleBuyerSelect");
+    this.title = document.getElementById("saleModalTitle");
+    this.helper = document.getElementById("saleModalHelper");
+    this.loader = document.getElementById("saleModalLoader");
+    this.notice = document.getElementById("saleModalNotice");
+
+    document
+      .getElementById("saleModalClose")
+      .addEventListener("click", () => this.close());
+    document
+      .getElementById("saleModalCancel")
+      .addEventListener("click", () => this.close());
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay) {
+        this.close();
+      }
+    });
+    this.form.addEventListener("submit", (event) => this.submit(event));
+  },
+  populateCandidates(candidates) {
+    if (!this.select) {
+      return;
+    }
+
+    const options = [
+      `<option value="">No buyer selected</option>`,
+      ...candidates.map(
+        (candidate) =>
+          `<option value="${ui.escapeHtml(candidate._id)}">${ui.escapeHtml(
+            candidate.name || "User",
+          )}${candidate.phone ? ` - ${ui.escapeHtml(candidate.phone)}` : ""}</option>`,
+      ),
+    ];
+    this.select.innerHTML = options.join("");
+  },
+  close() {
+    if (!this.overlay) {
+      return;
+    }
+    this.overlay.classList.remove("open");
+    this.current = null;
+    ui.setNotice("saleModalNotice", "");
+    ui.showLoader("saleModalLoader", false);
+  },
+  async openMarkSold({ productId, title, buyerId = "", onSuccess }) {
+    this.ensureModal();
+    this.current = { productId, onSuccess, buyerId };
+    this.title.textContent = `Mark "${title}" as sold`;
+    this.helper.textContent =
+      "Choose the buyer if you want this listing to appear in their Purchased items. Buyers appear here after messaging about the listing.";
+    this.populateCandidates([]);
+    ui.setNotice("saleModalNotice", "");
+    ui.showLoader("saleModalLoader", true);
+    this.overlay.classList.add("open");
+
+    try {
+      const candidates = await api.request(
+        `/api/products/${productId}/buyer-candidates`,
+      );
+      this.populateCandidates(candidates);
+      if (buyerId && this.select) {
+        this.select.value = buyerId;
+      }
+      if (!candidates.length) {
+        this.helper.textContent =
+          "No buyer has messaged about this listing yet. You can still mark it as sold, but it will not show up in Purchased items for anyone.";
+      }
+    } catch (error) {
+      ui.setNotice("saleModalNotice", error.message);
+    } finally {
+      ui.showLoader("saleModalLoader", false);
+    }
+  },
+  async submit(event) {
+    event.preventDefault();
+    if (!this.current?.productId) {
+      return;
+    }
+
+    ui.showLoader("saleModalLoader", true);
+    ui.setNotice("saleModalNotice", "");
+
+    const payload = {};
+    if (this.select?.value) {
+      payload.buyerId = this.select.value;
+    }
+
+    try {
+      const result = await api.request(
+        `/api/products/${this.current.productId}/sold`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      const onSuccess = this.current.onSuccess;
+      this.close();
+      if (typeof onSuccess === "function") {
+        await onSuccess(result);
+      }
+    } catch (error) {
+      ui.setNotice("saleModalNotice", error.message);
+    } finally {
+      ui.showLoader("saleModalLoader", false);
+    }
   },
 };
 

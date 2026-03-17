@@ -23,17 +23,25 @@ const productSchema = new mongoose.Schema(
     location: locationSchema,
     locationName: { type: String, trim: true },
     images: [{ type: String }],
+    imagePublicIds: [{ type: String }],
     seller: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
+    buyer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
     status: { type: String, enum: ["Available", "Sold"], default: "Available" },
+    soldAt: { type: Date, default: null },
     isApproved: { type: Boolean, default: false },
   },
   { timestamps: true },
 );
 
 productSchema.index({ "location.coordinates": "2dsphere" });
+productSchema.index({ buyer: 1, soldAt: -1 });
 
 module.exports = mongoose.model("Product", productSchema);

@@ -14,26 +14,30 @@ const renderProducts = (products) => {
 
   products.forEach((product) => {
     const imageUrl = ui.resolveImage(product.images);
+    const safeImageUrl = ui.escapeHtml(imageUrl);
+    const safeTitle = ui.escapeHtml(product.title);
+    const safeCategory = ui.escapeHtml(product.category);
     const locationText =
       product.locationName ||
       [product.location?.city, product.location?.state]
         .filter(Boolean)
         .join(", ");
+    const metaText = [product.condition, locationText].filter(Boolean).join(" - ");
     const card = document.createElement("div");
     card.className = "card fade-in";
     card.innerHTML = `
       <div class="card-media">
         ${
           imageUrl
-            ? `<img src="${imageUrl}" alt="${product.title}" loading="lazy" />`
+            ? `<img src="${safeImageUrl}" alt="${safeTitle}" loading="lazy" />`
             : `<div class="media-fallback">No image</div>`
         }
       </div>
       <div class="card-body">
-        <span class="tag">${product.category}</span>
-        <h3>${product.title}</h3>
+        <span class="tag">${safeCategory}</span>
+        <h3>${safeTitle}</h3>
         <div class="price">${ui.currency(product.price)}</div>
-        <div class="meta">${product.condition} - ${locationText}</div>
+        <div class="meta">${ui.escapeHtml(metaText || "Location unavailable")}</div>
         <a class="btn" href="/product.html?id=${product._id}">View</a>
       </div>
     `;
