@@ -4,6 +4,12 @@ const User = require("../models/User");
 const ApiError = require("../utils/apiError");
 const asyncHandler = require("../utils/asyncHandler");
 
+const populateMessage = (query) =>
+  query
+    .populate("sender", "name")
+    .populate("recipient", "name")
+    .populate("product", "title");
+
 const sendMessage = asyncHandler(async (req, res) => {
   const { recipientId, productId, content } = req.body;
   const trimmedContent = typeof content === "string" ? content.trim() : "";
@@ -46,7 +52,11 @@ const sendMessage = asyncHandler(async (req, res) => {
     content: trimmedContent,
   });
 
-  res.status(201).json(message);
+  const populatedMessage = await populateMessage(
+    Message.findById(message._id),
+  );
+
+  res.status(201).json(populatedMessage);
 });
 
 const listMessages = asyncHandler(async (req, res) => {
@@ -58,13 +68,63 @@ const listMessages = asyncHandler(async (req, res) => {
     filter.product = productId;
   }
 
-  const messages = await Message.find(filter)
-    .populate("sender", "name")
-    .populate("recipient", "name")
-    .populate("product", "title")
-    .sort({ createdAt: -1 });
+  const messages = await populateMessage(Message.find(filter).sort({ createdAt: -1 }));
 
   res.json(messages);
 });
 
-module.exports = { sendMessage, listMessages };
+const updateMessage = asyncHandler(async (req, res) => {
+  const message = await Message.findById(req.params.id);
+  if (!message) {
+    throw new ApiError(404, "Message not found");
+  }
+
+  if (String(message.sender) !== String(req.user._id)) {
+    throw new ApiError(403, "You can only edit your own messages");
+  }
+
+  if (message.isDeleted) {
+    throw new ApiError(400, "Deleted messages cannot be edited");
+  }
+
+  const content = typeof req.body.content === "string" ? req.body.content.trim() : "";
+  if (!content) {
+    throw new ApiError(400, "Message content is required");
+  }
+
+  message.content = content;
+  message.editedAt = new Date();
+  await message.save();
+
+  const populatedMessage = await populateMessage(
+    Message.findById(message._id),
+  );
+
+  res.json({ message: "Message updated", data: populatedMessage });
+});
+
+const deleteMessage = asyncHandler(async (req, res) => {
+  const message = await Message.findById(req.params.id);
+  if (!message) {
+    throw new ApiError(404, "Message not found");
+  }
+
+  if (String(message.sender) !== String(req.user._id)) {
+    throw new ApiError(403, "You can only delete your own messages");
+  }
+
+  if (message.isDeleted) {
+    res.json({ message: "Message already deleted" });
+    return;
+  }
+
+  message.content = "This message was deleted.";
+  message.isDeleted = true;
+  message.deletedAt = new Date();
+  message.editedAt = null;
+  await message.save();
+
+  res.json({ message: "Message deleted" });
+});
+
+module.exports = { sendMessage, listMessages, updateMessage, deleteMessage };

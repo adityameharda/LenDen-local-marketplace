@@ -2,12 +2,15 @@ const threadList = document.getElementById("threadList");
 const chatHeader = document.getElementById("chatHeader");
 const chatBody = document.getElementById("chatBody");
 const chatForm = document.getElementById("chatForm");
+const cancelEditBtn = document.getElementById("cancelEditBtn");
+const chatSubmitBtn = document.getElementById("chatSubmitBtn");
 
 let currentUser = null;
 let threads = [];
 let activeThreadKey = null;
 let pollHandle = null;
 let pendingThread = null;
+let editingMessageId = null;
 
 const normalizeId = (value) => (value ? String(value) : "");
 
@@ -19,6 +22,7 @@ const extractId = (value) => {
 };
 
 const getCurrentUserId = () => normalizeId(extractId(currentUser));
+const getChatInput = () => chatForm?.elements?.namedItem("content");
 
 const buildThreadKey = (productId, userIdA, userIdB) => {
   const pair = [normalizeId(userIdA), normalizeId(userIdB)].sort();
@@ -183,6 +187,7 @@ const renderChat = () => {
     chatHeader.textContent = "Select a thread to start chatting.";
     chatBody.innerHTML = "";
     chatForm.style.display = "none";
+    resetComposer();
     return;
   }
 
@@ -193,12 +198,41 @@ const renderChat = () => {
       const isSelf =
         normalizeId(extractId(message.sender)) === getCurrentUserId();
       const timestamp = new Date(message.createdAt).toLocaleString();
+      const messageState = [];
+      if (message.isDeleted) {
+        messageState.push("Deleted");
+      } else if (message.editedAt) {
+        messageState.push("Edited");
+      }
+      const canManage = isSelf && !message.isDeleted;
+      const actions = canManage
+        ? `
+          <div class="chat-bubble-actions">
+            <button class="icon-btn small" type="button" data-edit-message="${message._id}" aria-label="Edit message">
+              Edit
+            </button>
+            <button class="icon-btn small" type="button" data-delete-message="${message._id}" aria-label="Delete message">
+              Delete
+            </button>
+          </div>
+        `
+        : "";
       return `
       <div class="chat-bubble ${isSelf ? "self" : ""}">
         <div class="meta">${ui.escapeHtml(
           `${message.sender?.name || "Someone"} - ${timestamp}`,
         )}</div>
-        <div>${ui.escapeHtml(message.content)}</div>
+        <div class="${message.isDeleted ? "message-deleted" : ""}">${ui.escapeHtml(
+          message.content,
+        )}</div>
+        ${
+          messageState.length
+            ? `<div class="chat-message-state">${ui.escapeHtml(
+                messageState.join(" • "),
+              )}</div>`
+            : ""
+        }
+        ${actions}
       </div>
     `;
     })
@@ -210,11 +244,74 @@ const renderChat = () => {
   }
 
   chatForm.style.display = "grid";
+  bindMessageActions();
   chatBody.scrollTop = chatBody.scrollHeight;
+};
+
+const bindMessageActions = () => {
+  document.querySelectorAll("[data-edit-message]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const thread = threads.find((item) => item.key === activeThreadKey);
+      const message = thread?.messages.find(
+        (item) => item._id === btn.dataset.editMessage,
+      );
+      if (!message || message.isDeleted) {
+        return;
+      }
+
+      editingMessageId = message._id;
+      const input = getChatInput();
+      if (input) {
+        input.value = message.content;
+        input.focus();
+      }
+      if (chatSubmitBtn) {
+        chatSubmitBtn.textContent = "Save";
+      }
+      if (cancelEditBtn) {
+        cancelEditBtn.hidden = false;
+      }
+      ui.setNotice("messagesNotice", "Editing your message.");
+    });
+  });
+
+  document.querySelectorAll("[data-delete-message]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const confirmed = window.confirm("Delete this message?");
+      if (!confirmed) {
+        return;
+      }
+
+      ui.setNotice("messagesNotice", "");
+      try {
+        await api.request(`/api/messages/${btn.dataset.deleteMessage}`, {
+          method: "DELETE",
+        });
+        if (editingMessageId === btn.dataset.deleteMessage) {
+          resetComposer();
+        }
+        await loadMessages();
+      } catch (error) {
+        ui.setNotice("messagesNotice", error.message);
+      }
+    });
+  });
+};
+
+const resetComposer = () => {
+  editingMessageId = null;
+  chatForm?.reset();
+  if (chatSubmitBtn) {
+    chatSubmitBtn.textContent = "Send";
+  }
+  if (cancelEditBtn) {
+    cancelEditBtn.hidden = true;
+  }
 };
 
 const setActiveThread = (key) => {
   activeThreadKey = key;
+  resetComposer();
   const seenMap = getSeenMap();
   const thread = threads.find((item) => item.key === key);
   if (thread) {
@@ -329,12 +426,20 @@ const sendMessage = async (event) => {
 
   ui.setNotice("messagesNotice", "");
   try {
-    await api.request("/api/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    chatForm.reset();
+    if (editingMessageId) {
+      await api.request(`/api/messages/${editingMessageId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: payload.content }),
+      });
+    } else {
+      await api.request("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    }
+    resetComposer();
     await loadMessages();
   } catch (error) {
     ui.setNotice("messagesNotice", error.message);
@@ -356,6 +461,13 @@ const init = async () => {
 
   if (chatForm) {
     chatForm.addEventListener("submit", sendMessage);
+  }
+
+  if (cancelEditBtn) {
+    cancelEditBtn.addEventListener("click", () => {
+      resetComposer();
+      ui.setNotice("messagesNotice", "");
+    });
   }
 
   await loadMessages();

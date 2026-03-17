@@ -14,6 +14,9 @@ const messageSchema = new mongoose.Schema(
     },
     product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
     content: { type: String, required: true, trim: true },
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: { type: Date, default: null },
+    editedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );

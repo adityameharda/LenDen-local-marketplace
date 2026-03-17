@@ -56,7 +56,17 @@
               placeholder="Write a message"
               required
             ></textarea>
-            <button class="btn" type="submit">Send</button>
+            <div class="chat-input-actions">
+              <button
+                class="btn secondary"
+                type="button"
+                id="cancelEditBtn"
+                hidden
+              >
+                Cancel
+              </button>
+              <button class="btn" type="submit" id="chatSubmitBtn">Send</button>
+            </div>
           </form>
         </section>
       </section>
