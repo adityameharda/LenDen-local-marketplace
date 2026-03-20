@@ -20,10 +20,12 @@ const ui = {
       .replace(/'/g, "&#39;");
   },
   currency(value) {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(value || 0);
+    const amount = Number(value) || 0;
+
+    return `Rs. ${new Intl.NumberFormat("en-IN", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(amount)}`;
   },
   date(value) {
     if (!value) {

@@ -62,9 +62,18 @@ img {
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-size: 22px;
   font-weight: 800;
   letter-spacing: 0.1px;
+}
+
+.brand-mark {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
 }
 
 .nav-links {

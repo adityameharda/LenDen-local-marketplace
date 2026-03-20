@@ -223,7 +223,7 @@ const seedDatabase = async () => {
     created.forEach((product, index) => {
       console.log(`${index + 1}. ${product.title}`);
       console.log(
-        `   Category: ${product.category} | Condition: ${product.condition} | Price: $${product.price}`,
+        `   Category: ${product.category} | Condition: ${product.condition} | Price: Rs. ${product.price}`,
       );
       console.log(
         `   Location: ${product.location.city}, ${product.location.state}`,

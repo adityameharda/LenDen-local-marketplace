@@ -159,7 +159,7 @@ const seedDatabase = async () => {
 
     console.log("Products added:");
     createdProducts.forEach((product) => {
-      console.log(`  - ${product.title} - $${product.price}`);
+      console.log(`  - ${product.title} - Rs. ${product.price}`);
     });
 
     console.log("\nDatabase seeding complete!");
