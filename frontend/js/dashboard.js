@@ -659,4 +659,18 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+const createFromQuery = () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("create") !== "1") {
+    return;
+  }
+
+  openCreateListingModal();
+  params.delete("create");
+  const nextQuery = params.toString();
+  const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`;
+  window.history.replaceState({}, "", nextUrl);
+};
+
 loadDashboard();
+createFromQuery();

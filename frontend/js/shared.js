@@ -251,7 +251,35 @@ const sales = {
   },
 };
 
+const ensureFooter = () => {
+  if (document.getElementById("siteFooter")) {
+    return;
+  }
+
+  const footer = document.createElement("footer");
+  footer.id = "siteFooter";
+  footer.className = "site-footer";
+  footer.innerHTML = `
+    <div class="site-footer-inner">
+      <div>
+        <div class="site-footer-brand">LeniDeni Marketplace</div>
+        <div class="site-footer-meta">Buy, sell, and chat securely in your local community.</div>
+      </div>
+      <div class="site-footer-links" aria-label="Footer links">
+        <a class="site-footer-link" href="/index.html">Browse</a>
+        <a class="site-footer-link" href="/dashboard.html?create=1" data-auth="user">Create listing</a>
+        <a class="site-footer-link" href="/messages.html" data-auth="user">Messages</a>
+        <a class="site-footer-link" href="/register.html" data-auth="guest">Create account</a>
+      </div>
+      <div class="site-footer-meta">© ${new Date().getFullYear()} LeniDeni</div>
+    </div>
+  `;
+
+  document.body.appendChild(footer);
+};
+
 document.addEventListener("DOMContentLoaded", async () => {
   const user = await auth.ensureUser();
+  ensureFooter();
   auth.applyNavState(user);
 });
