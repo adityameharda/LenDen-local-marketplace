@@ -16,7 +16,6 @@
     <header class="navbar">
       <div class="container">
         <a class="brand" href="/index.html" aria-label="Go to home page">
-          <img class="brand-mark" src="/favicon.svg" alt="" aria-hidden="true" />
           <span>LeniDeni</span>
         </a>
         <nav class="nav-links">
@@ -40,51 +39,167 @@
 
     <main class="container auth-shell">
       <section class="form-card">
-        <h2>Create your account</h2>
+        <div style="margin-bottom: 24px">
+          <h2
+            style="
+              font-size: 28px;
+              margin: 0 0 8px 0;
+              font-weight: 800;
+              color: var(--on-surface);
+            "
+          >
+            Create your account
+          </h2>
+          <p class="meta" style="color: var(--on-surface-variant); margin: 0">
+            Join LeniDeni and start selling or buying in your community.
+          </p>
+        </div>
         <form id="registerForm" class="form-grid">
-          <input
-            class="input"
-            name="name"
-            placeholder="Full name"
-            autocomplete="name"
-            required
-          />
-          <input
-            class="input"
-            name="email"
-            placeholder="Email"
-            autocomplete="email"
-          />
-          <input
-            class="input"
-            name="phone"
-            placeholder="Phone"
-            autocomplete="tel"
-          />
-          <input
-            class="input"
-            name="password"
-            type="password"
-            placeholder="Password"
-            autocomplete="new-password"
-            required
-          />
-          <input
-            class="input"
-            name="city"
-            placeholder="City"
-            autocomplete="address-level2"
-          />
-          <input
-            class="input"
-            name="state"
-            placeholder="State"
-            autocomplete="address-level1"
-          />
-          <button class="btn" type="submit">Create account</button>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label
+              style="
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: var(--on-surface-variant);
+              "
+              >Full Name</label
+            >
+            <input
+              class="input"
+              name="name"
+              placeholder="Enter your full name"
+              autocomplete="name"
+              required
+            />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label
+              style="
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: var(--on-surface-variant);
+              "
+              >Email</label
+            >
+            <input
+              class="input"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              autocomplete="email"
+            />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label
+              style="
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: var(--on-surface-variant);
+              "
+              >Phone</label
+            >
+            <input
+              class="input"
+              name="phone"
+              placeholder="+1 (555) 000-0000"
+              autocomplete="tel"
+            />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label
+              style="
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: var(--on-surface-variant);
+              "
+              >City</label
+            >
+            <input
+              class="input"
+              name="city"
+              placeholder="Your city"
+              autocomplete="address-level2"
+            />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label
+              style="
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: var(--on-surface-variant);
+              "
+              >State</label
+            >
+            <input
+              class="input"
+              name="state"
+              placeholder="Your state"
+              autocomplete="address-level1"
+            />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label
+              style="
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: var(--on-surface-variant);
+              "
+              >Password</label
+            >
+            <input
+              class="input"
+              name="password"
+              type="password"
+              placeholder="••••••••••••"
+              autocomplete="new-password"
+              required
+            />
+          </div>
+          <button
+            class="btn"
+            type="submit"
+            style="margin-top: 8px; height: 44px; font-size: 15px"
+          >
+            Create Account
+          </button>
         </form>
-        <div id="authLoader" class="loader">Creating account...</div>
+        <div id="authLoader" class="loader">✓ Creating account...</div>
         <p id="authNotice" class="notice"></p>
+        <div
+          style="
+            margin-top: 20px;
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid var(--outline-variant);
+          "
+        >
+          <p
+            style="color: var(--on-surface-variant); font-size: 14px; margin: 0"
+          >
+            Already have an account?
+            <a
+              href="/login.html"
+              style="
+                color: var(--primary);
+                font-weight: 600;
+                text-decoration: none;
+              "
+              >Sign in</a
+            >
+          </p>
+        </div>
       </section>
     </main>
 

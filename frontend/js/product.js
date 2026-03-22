@@ -9,12 +9,103 @@ let currentUser = null;
 let currentProduct = null;
 let isFavorite = false;
 let contactSellerBtn = null;
+let currentCarouselIndex = 0;
 const contactModal = document.getElementById("contactModal");
 const contactClose = document.getElementById("contactClose");
 const contactForm = document.getElementById("contactForm");
 const contactMeta = document.getElementById("contactMeta");
 
 const getId = (value) => api.getEntityId(value);
+
+const renderProductMedia = (images, safeTitle) => {
+  const validImages = images.filter(Boolean);
+  if (!validImages.length) {
+    return `
+      <div class="product-media">
+        <div class="product-image">
+          <div class="media-fallback">No image</div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (validImages.length === 1) {
+    const imageUrl = ui.escapeHtml(validImages[0]);
+    return `
+      <div class="product-media">
+        <div class="product-image">
+          <img src="${imageUrl}" alt="${safeTitle}" loading="lazy" />
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="product-media">
+      <div class="product-carousel" id="productCarousel" data-total="${validImages.length}">
+        <div class="product-carousel-track" id="productCarouselTrack">
+          ${validImages
+            .map(
+              (img) => `
+              <div class="product-carousel-slide">
+                <img src="${ui.escapeHtml(img)}" alt="${safeTitle}" loading="lazy" />
+              </div>
+            `,
+            )
+            .join("")}
+        </div>
+        <button class="carousel-nav prev" type="button" id="productCarouselPrev" aria-label="Previous image">‹</button>
+        <button class="carousel-nav next" type="button" id="productCarouselNext" aria-label="Next image">›</button>
+      </div>
+      <div class="product-carousel-dots" id="productCarouselDots">
+        ${validImages
+          .map(
+            (_, index) => `
+            <button class="product-carousel-dot ${index === 0 ? "active" : ""}" type="button" data-carousel-index="${index}" aria-label="Go to image ${index + 1}"></button>
+          `,
+          )
+          .join("")}
+      </div>
+    </div>
+  `;
+};
+
+const initProductCarousel = () => {
+  const carousel = document.getElementById("productCarousel");
+  const track = document.getElementById("productCarouselTrack");
+  if (!carousel || !track) {
+    return;
+  }
+
+  const totalSlides = Number(carousel.dataset.total || 0);
+  if (!totalSlides || totalSlides < 2) {
+    return;
+  }
+
+  const setSlide = (index) => {
+    currentCarouselIndex = (index + totalSlides) % totalSlides;
+    track.style.transform = `translateX(-${currentCarouselIndex * 100}%)`;
+    document.querySelectorAll(".product-carousel-dot").forEach((dot) => {
+      const dotIndex = Number(dot.dataset.carouselIndex || 0);
+      dot.classList.toggle("active", dotIndex === currentCarouselIndex);
+    });
+  };
+
+  document
+    .getElementById("productCarouselPrev")
+    ?.addEventListener("click", () => setSlide(currentCarouselIndex - 1));
+  document
+    .getElementById("productCarouselNext")
+    ?.addEventListener("click", () => setSlide(currentCarouselIndex + 1));
+
+  document.querySelectorAll(".product-carousel-dot").forEach((dot) => {
+    dot.addEventListener("click", () => {
+      setSlide(Number(dot.dataset.carouselIndex || 0));
+    });
+  });
+
+  setSlide(0);
+};
 
 const isOwnerViewing = () => {
   if (!currentUser || !currentProduct) {
@@ -84,8 +175,6 @@ const loadProduct = async () => {
     const product = await api.request(`/api/products/${productId}`);
     currentProduct = product;
     const images = Array.isArray(product.images) ? product.images : [];
-    const primaryImage = ui.resolveImage(images);
-    const safePrimaryImage = ui.escapeHtml(primaryImage);
     const locationText =
       product.locationName ||
       [product.location?.city, product.location?.state]
@@ -100,28 +189,13 @@ const loadProduct = async () => {
     ]
       .filter(Boolean)
       .join(" - ");
-    const thumbnails = images
-      .filter((img) => img && img !== primaryImage)
-      .slice(0, 4)
-      .map(
-        (img) =>
-          `<button class="thumb" type="button" data-image="${ui.escapeHtml(img)}">
-            <img src="${ui.escapeHtml(img)}" alt="${safeTitle}" loading="lazy" />
-          </button>`,
-      )
-      .join("");
+    const canContactSeller =
+      Boolean(getId(product.seller)) &&
+      (!currentUser || getId(currentUser) !== getId(product.seller));
+
     productDetails.innerHTML = `
       <div class="product-layout">
-        <div class="product-media">
-          <div class="product-image" id="primaryImage">
-            ${
-              primaryImage
-                ? `<img src="${safePrimaryImage}" alt="${safeTitle}" />`
-                : `<div class="media-fallback">No image</div>`
-            }
-          </div>
-          ${thumbnails ? `<div class="product-thumbs">${thumbnails}</div>` : ""}
-        </div>
+        ${renderProductMedia(images, safeTitle)}
         <div class="product-info">
           <span class="tag">${safeCategory}</span>
           <h2>${safeTitle}</h2>
@@ -145,11 +219,15 @@ const loadProduct = async () => {
                 )}</div>`
               : ""
           }
-          <div class="hero-cta">
-            <button class="btn" id="contactSellerBtn" type="button">
-              Contact seller
-            </button>
-          </div>
+          ${
+            canContactSeller
+              ? `<div class="hero-cta">
+                  <button class="btn" id="contactSellerBtn" type="button">
+                    Contact seller
+                  </button>
+                </div>`
+              : ""
+          }
         </div>
       </div>
     `;
@@ -158,22 +236,7 @@ const loadProduct = async () => {
     updateContactSeller();
     await syncFavoriteState();
     setupListingAction();
-
-    if (thumbnails) {
-      document
-        .querySelectorAll(".product-thumbs [data-image]")
-        .forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const image = btn.dataset.image;
-            const target = document.getElementById("primaryImage");
-            if (target) {
-              target.innerHTML = `<img src="${ui.escapeHtml(
-                image,
-              )}" alt="${safeTitle}" />`;
-            }
-          });
-        });
-    }
+    initProductCarousel();
   } catch (error) {
     productDetails.innerHTML = `<div class='notice'>${error.message}</div>`;
   } finally {
@@ -279,7 +342,9 @@ const init = async () => {
   currentUser = await auth.ensureUser();
   await loadProduct();
   updateContactSeller();
-  if (!currentUser && productNotice) {
+  if (isOwnerViewing() && productNotice) {
+    productNotice.textContent = "This is your listing.";
+  } else if (!currentUser && productNotice) {
     productNotice.textContent = "Log in to save this listing.";
   } else if (isBuyerViewing() && productNotice) {
     productNotice.textContent = "This listing is in your purchased items.";
@@ -342,6 +407,10 @@ document.addEventListener("click", (event) => {
   if (event.target?.id === "contactSellerBtn") {
     if (!currentUser) {
       window.location.href = "/login.html";
+      return;
+    }
+    if (isOwnerViewing()) {
+      ui.setNotice("productNotice", "You cannot contact yourself.");
       return;
     }
     openContactModal();

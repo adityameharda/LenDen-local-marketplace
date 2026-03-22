@@ -16,7 +16,6 @@
     <header class="navbar">
       <div class="container">
         <a class="brand" href="/index.html" aria-label="Go to home page">
-          <img class="brand-mark" src="/favicon.svg" alt="" aria-hidden="true" />
           <span>LeniDeni</span>
         </a>
         <nav class="nav-links">
@@ -38,8 +37,24 @@
     </header>
 
     <main class="container">
-      <h2>My listings</h2>
-      <div id="myListingsLoader" class="loader">Loading your listings...</div>
+      <div style="margin-bottom: 32px">
+        <h2
+          style="
+            font-size: 32px;
+            margin: 24px 0 8px 0;
+            font-weight: 800;
+            color: var(--on-surface);
+          "
+        >
+          My Listings
+        </h2>
+        <p style="color: var(--on-surface-variant); margin: 0; font-size: 16px">
+          Manage all your active and sold items.
+        </p>
+      </div>
+      <div id="myListingsLoader" class="loader">
+        ⏳ Loading your listings...
+      </div>
       <p id="myListingsNotice" class="notice"></p>
       <section class="card-grid" id="myListingsGrid"></section>
     </main>

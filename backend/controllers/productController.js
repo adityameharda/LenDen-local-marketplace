@@ -299,7 +299,10 @@ const getBuyerCandidates = asyncHandler(async (req, res) => {
     const recipientId = resolveId(message.recipient);
     let participant = null;
 
-    if (senderId === String(product.seller) && recipientId !== String(product.seller)) {
+    if (
+      senderId === String(product.seller) &&
+      recipientId !== String(product.seller)
+    ) {
       participant = message.recipient;
     } else if (
       recipientId === String(product.seller) &&
@@ -399,16 +402,80 @@ const updateProduct = asyncHandler(async (req, res) => {
         : req.body.locationName;
   }
 
+  const previousImages = Array.isArray(product.images)
+    ? [...product.images]
+    : [];
   const previousPublicIds = Array.isArray(product.imagePublicIds)
     ? [...product.imagePublicIds]
     : [];
-  let uploadedImages = null;
 
+  let keptPublicIds = [...previousPublicIds];
+  let keptImages = [...previousImages];
+
+  if (hasOwn(req.body, "keepImagePublicIds")) {
+    let parsed = req.body.keepImagePublicIds;
+    if (typeof parsed === "string") {
+      try {
+        parsed = JSON.parse(parsed);
+      } catch (error) {
+        throw new ApiError(400, "Invalid keepImagePublicIds payload");
+      }
+    }
+
+    if (!Array.isArray(parsed)) {
+      throw new ApiError(400, "keepImagePublicIds must be an array");
+    }
+
+    const normalizedKeepOrder = parsed.filter(Boolean).map(String);
+    const keepSet = new Set(normalizedKeepOrder);
+    const nextPublicIds = [];
+    const nextImages = [];
+
+    const previousByPublicId = new Map();
+    previousPublicIds.forEach((publicId, index) => {
+      previousByPublicId.set(String(publicId), {
+        publicId,
+        image: previousImages[index],
+      });
+    });
+
+    normalizedKeepOrder.forEach((publicId) => {
+      const existing = previousByPublicId.get(publicId);
+      if (!existing) {
+        return;
+      }
+      nextPublicIds.push(existing.publicId);
+      nextImages.push(existing.image);
+    });
+
+    if (nextPublicIds.length !== keepSet.size) {
+      throw new ApiError(400, "Some kept images are invalid for this listing");
+    }
+
+    keptPublicIds = nextPublicIds;
+    keptImages = nextImages;
+  }
+
+  let uploadedImages = null;
   if (req.files?.length) {
     uploadedImages = await uploadProductImages(req.files);
-    product.images = uploadedImages.urls;
-    product.imagePublicIds = uploadedImages.publicIds;
   }
+
+  const nextImages = [...keptImages, ...(uploadedImages?.urls || [])];
+  const nextPublicIds = [
+    ...keptPublicIds,
+    ...(uploadedImages?.publicIds || []),
+  ];
+
+  if (nextPublicIds.length > 6) {
+    if (uploadedImages?.publicIds?.length) {
+      await deleteCloudinaryImages(uploadedImages.publicIds);
+    }
+    throw new ApiError(400, "A listing can have at most 6 images");
+  }
+
+  product.images = nextImages;
+  product.imagePublicIds = nextPublicIds;
 
   try {
     await product.save();
@@ -419,8 +486,13 @@ const updateProduct = asyncHandler(async (req, res) => {
     throw error;
   }
 
-  if (uploadedImages && previousPublicIds.length) {
-    await deleteCloudinaryImages(previousPublicIds);
+  const nextPublicIdSet = new Set(nextPublicIds.map(String));
+  const removedPublicIds = previousPublicIds.filter(
+    (publicId) => !nextPublicIdSet.has(String(publicId)),
+  );
+
+  if (removedPublicIds.length) {
+    await deleteCloudinaryImages(removedPublicIds);
   }
 
   res.json(product);

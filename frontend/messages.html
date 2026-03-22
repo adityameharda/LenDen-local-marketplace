@@ -16,7 +16,6 @@
     <header class="navbar">
       <div class="container">
         <a class="brand" href="/index.html" aria-label="Go to home page">
-          <img class="brand-mark" src="/favicon.svg" alt="" aria-hidden="true" />
           <span>LeniDeni</span>
         </a>
         <nav class="nav-links">
@@ -38,37 +37,76 @@
     </header>
 
     <main class="container">
-      <h2>Messages</h2>
-      <div id="messagesLoader" class="loader">Loading messages...</div>
+      <div style="margin-bottom: 32px">
+        <h2
+          style="
+            font-size: 32px;
+            margin: 24px 0 8px 0;
+            font-weight: 800;
+            color: var(--on-surface);
+          "
+        >
+          Messages
+        </h2>
+        <p style="color: var(--on-surface-variant); margin: 0; font-size: 16px">
+          Connect with buyers and sellers in your community.
+        </p>
+      </div>
+      <div id="messagesLoader" class="loader">⏳ Loading messages...</div>
       <p id="messagesNotice" class="notice"></p>
       <section class="chat-layout">
         <aside class="chat-sidebar">
-          <div class="chat-sidebar-header">Threads</div>
+          <div
+            class="chat-sidebar-header"
+            style="font-weight: 700; font-size: 16px; color: var(--on-surface)"
+          >
+            Your Conversations
+          </div>
           <div id="threadList" class="chat-thread-list"></div>
         </aside>
         <section class="chat-panel">
-          <div class="chat-panel-header" id="chatHeader">
-            Select a thread to start chatting.
+          <div
+            class="chat-panel-header"
+            id="chatHeader"
+            style="color: var(--on-surface-variant)"
+          >
+            Select a conversation to start messaging.
           </div>
           <div class="chat-panel-body" id="chatBody"></div>
-          <form class="chat-input" id="chatForm">
+          <form
+            class="chat-input"
+            id="chatForm"
+            style="
+              background: var(--surface-variant);
+              padding: 16px;
+              border-radius: 12px;
+            "
+          >
             <textarea
               class="input"
               name="content"
               rows="2"
-              placeholder="Write a message"
+              placeholder="Type your message..."
               required
             ></textarea>
-            <div class="chat-input-actions">
+            <div class="chat-input-actions" style="gap: 8px">
               <button
                 class="btn secondary"
                 type="button"
                 id="cancelEditBtn"
                 hidden
+                style="padding: 8px 16px"
               >
                 Cancel
               </button>
-              <button class="btn" type="submit" id="chatSubmitBtn">Send</button>
+              <button
+                class="btn"
+                type="submit"
+                id="chatSubmitBtn"
+                style="padding: 8px 24px"
+              >
+                Send →
+              </button>
             </div>
           </form>
         </section>

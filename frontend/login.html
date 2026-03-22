@@ -16,7 +16,6 @@
     <header class="navbar">
       <div class="container">
         <a class="brand" href="/index.html" aria-label="Go to home page">
-          <img class="brand-mark" src="/favicon.svg" alt="" aria-hidden="true" />
           <span>LeniDeni</span>
         </a>
         <nav class="nav-links">
@@ -40,28 +39,94 @@
 
     <main class="container auth-shell">
       <section class="form-card">
-        <h2>Welcome back</h2>
-        <p class="meta">Login with your email or phone and password.</p>
+        <div style="margin-bottom: 24px">
+          <h2
+            style="
+              font-size: 28px;
+              margin: 0 0 8px 0;
+              font-weight: 800;
+              color: var(--on-surface);
+            "
+          >
+            Welcome back
+          </h2>
+          <p class="meta" style="color: var(--on-surface-variant); margin: 0">
+            Access your LeniDeni account and manage your listings.
+          </p>
+        </div>
         <form id="loginForm" class="form-grid">
-          <input
-            class="input"
-            name="identifier"
-            placeholder="Email or phone"
-            autocomplete="username"
-            required
-          />
-          <input
-            class="input"
-            name="password"
-            type="password"
-            placeholder="Password"
-            autocomplete="current-password"
-            required
-          />
-          <button class="btn" type="submit">Login</button>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label
+              style="
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: var(--on-surface-variant);
+              "
+              >Email or Phone</label
+            >
+            <input
+              class="input"
+              name="identifier"
+              placeholder="Enter your email or phone"
+              autocomplete="username"
+              required
+            />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label
+              style="
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: var(--on-surface-variant);
+              "
+              >Password</label
+            >
+            <input
+              class="input"
+              name="password"
+              type="password"
+              placeholder="••••••••••••"
+              autocomplete="current-password"
+              required
+            />
+          </div>
+          <button
+            class="btn"
+            type="submit"
+            style="margin-top: 8px; height: 44px; font-size: 15px"
+          >
+            Sign In
+          </button>
         </form>
-        <div id="authLoader" class="loader">Authenticating...</div>
+        <div id="authLoader" class="loader">✓ Authenticating...</div>
         <p id="authNotice" class="notice"></p>
+        <div
+          style="
+            margin-top: 20px;
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid var(--outline-variant);
+          "
+        >
+          <p
+            style="color: var(--on-surface-variant); font-size: 14px; margin: 0"
+          >
+            Don't have an account?
+            <a
+              href="/register.html"
+              style="
+                color: var(--primary);
+                font-weight: 600;
+                text-decoration: none;
+              "
+              >Create one</a
+            >
+          </p>
+        </div>
       </section>
     </main>
 

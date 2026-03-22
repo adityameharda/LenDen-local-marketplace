@@ -2,12 +2,337 @@ const profileCard = document.getElementById("profileCard");
 const listingsGrid = document.getElementById("listingsGrid");
 const purchasesGrid = document.getElementById("purchasesGrid");
 const favoritesGrid = document.getElementById("favoritesGrid");
+const analyticsGrid = document.getElementById("analyticsGrid");
 const createForm = document.getElementById("createForm");
+const createListingModalTitle = document.getElementById(
+  "createListingModalTitle",
+);
+const createListingSubmitBtn = document.getElementById(
+  "createListingSubmitBtn",
+);
+const listingExistingImages = document.getElementById("listingExistingImages");
+const openCreateListingModalBtn = document.getElementById(
+  "openCreateListingModal",
+);
+const createListingModal = document.getElementById("createListingModal");
+const createListingModalClose = document.getElementById(
+  "createListingModalClose",
+);
+const createListingModalCancel = document.getElementById(
+  "createListingModalCancel",
+);
+const listingsCount = document.getElementById("listingsCount");
+const favoritesCount = document.getElementById("favoritesCount");
+const activeListingsStat = document.getElementById("activeListingsStat");
+const messagesStat = document.getElementById("messagesStat");
+const favoritesStat = document.getElementById("favoritesStat");
+let editingListingId = "";
+let editableListingsById = new Map();
+let editableListingImages = [];
+let removedImagePublicIds = new Set();
+let draggingImagePublicId = "";
+
+const reorderEditableImages = (fromPublicId, toPublicId) => {
+  if (!fromPublicId || !toPublicId || fromPublicId === toPublicId) {
+    return;
+  }
+
+  const fromIndex = editableListingImages.findIndex(
+    (image) => image.publicId === fromPublicId,
+  );
+  const toIndex = editableListingImages.findIndex(
+    (image) => image.publicId === toPublicId,
+  );
+
+  if (fromIndex < 0 || toIndex < 0) {
+    return;
+  }
+
+  const [moved] = editableListingImages.splice(fromIndex, 1);
+  editableListingImages.splice(toIndex, 0, moved);
+};
+
+const moveEditableImageByOffset = (publicId, offset) => {
+  if (!publicId || !offset) {
+    return;
+  }
+
+  const index = editableListingImages.findIndex(
+    (image) => image.publicId === publicId,
+  );
+  if (index < 0) {
+    return;
+  }
+
+  const targetIndex = index + offset;
+  if (targetIndex < 0 || targetIndex >= editableListingImages.length) {
+    return;
+  }
+
+  const [moved] = editableListingImages.splice(index, 1);
+  editableListingImages.splice(targetIndex, 0, moved);
+};
+
+const renderEditableImages = () => {
+  if (!listingExistingImages) {
+    return;
+  }
+
+  if (!editingListingId || !editableListingImages.length) {
+    listingExistingImages.hidden = true;
+    listingExistingImages.innerHTML = "";
+    return;
+  }
+
+  listingExistingImages.hidden = false;
+  listingExistingImages.innerHTML = `
+    <p class="meta" style="margin: 0 0 4px 0;">Existing photos (click Remove to exclude from update):</p>
+    <p class="meta" style="margin: 0 0 10px 0;">Drag photos horizontally/vertically to reorder. First kept photo becomes primary.</p>
+    <div class="listing-existing-images-grid">
+      ${editableListingImages
+        .map((image, index) => {
+          const removed = removedImagePublicIds.has(image.publicId);
+          const disableLeft = index === 0 ? "disabled" : "";
+          const disableRight =
+            index === editableListingImages.length - 1 ? "disabled" : "";
+          return `
+            <div class="listing-existing-image ${removed ? "removed" : ""}" draggable="true" data-image-public-id="${ui.escapeHtml(image.publicId)}">
+              <img src="${ui.escapeHtml(image.url)}" alt="Listing image" loading="lazy" />
+              <div class="listing-image-order-actions">
+                <button class="btn secondary listing-image-order-btn" type="button" data-move-image="${ui.escapeHtml(image.publicId)}" data-move-offset="-1" ${disableLeft}>←</button>
+                <button class="btn secondary listing-image-order-btn" type="button" data-move-image="${ui.escapeHtml(image.publicId)}" data-move-offset="1" ${disableRight}>→</button>
+              </div>
+              <button class="btn secondary listing-image-toggle" type="button" data-toggle-image="${ui.escapeHtml(image.publicId)}">
+                ${removed ? "Keep" : "Remove"}
+              </button>
+            </div>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+
+  listingExistingImages
+    .querySelectorAll("[data-toggle-image]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        const publicId = button.dataset.toggleImage;
+        if (!publicId) {
+          return;
+        }
+        if (removedImagePublicIds.has(publicId)) {
+          removedImagePublicIds.delete(publicId);
+        } else {
+          removedImagePublicIds.add(publicId);
+        }
+        renderEditableImages();
+      });
+    });
+
+  listingExistingImages
+    .querySelectorAll("[data-move-image]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        const publicId = button.dataset.moveImage;
+        const offset = Number(button.dataset.moveOffset || 0);
+        moveEditableImageByOffset(publicId, offset);
+        renderEditableImages();
+      });
+    });
+
+  listingExistingImages
+    .querySelectorAll(".listing-existing-image")
+    .forEach((card) => {
+      card.addEventListener("dragstart", (event) => {
+        const publicId = card.dataset.imagePublicId;
+        if (!publicId) {
+          return;
+        }
+        draggingImagePublicId = publicId;
+        card.classList.add("dragging");
+        if (event.dataTransfer) {
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("text/plain", publicId);
+        }
+      });
+
+      card.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        card.classList.add("drag-over");
+      });
+
+      card.addEventListener("dragleave", () => {
+        card.classList.remove("drag-over");
+      });
+
+      card.addEventListener("drop", (event) => {
+        event.preventDefault();
+        const targetPublicId = card.dataset.imagePublicId;
+        const sourcePublicId =
+          draggingImagePublicId ||
+          event.dataTransfer?.getData("text/plain") ||
+          "";
+        card.classList.remove("drag-over");
+        reorderEditableImages(sourcePublicId, targetPublicId);
+        draggingImagePublicId = "";
+        renderEditableImages();
+      });
+
+      card.addEventListener("dragend", () => {
+        draggingImagePublicId = "";
+        card.classList.remove("dragging", "drag-over");
+        listingExistingImages
+          .querySelectorAll(".listing-existing-image")
+          .forEach((node) => node.classList.remove("drag-over", "dragging"));
+      });
+    });
+};
+
+const syncListingModalMode = () => {
+  const isEditing = Boolean(editingListingId);
+  if (createListingModalTitle) {
+    createListingModalTitle.textContent = isEditing
+      ? "Edit Listing"
+      : "Create New Listing";
+  }
+  if (createListingSubmitBtn) {
+    createListingSubmitBtn.textContent = isEditing
+      ? "Save Changes"
+      : "Publish Listing";
+  }
+};
+
+const resetListingFormToCreate = () => {
+  editingListingId = "";
+  editableListingImages = [];
+  removedImagePublicIds.clear();
+  if (createForm) {
+    createForm.reset();
+  }
+  renderEditableImages();
+  syncListingModalMode();
+};
+
+const prefillListingForm = (product) => {
+  if (!createForm || !product) {
+    return;
+  }
+
+  createForm.elements.title.value = product.title || "";
+  createForm.elements.description.value = product.description || "";
+  createForm.elements.category.value = product.category || "";
+  createForm.elements.price.value = product.price ?? "";
+  createForm.elements.condition.value = product.condition || "";
+  createForm.elements.city.value = product.location?.city || "";
+  createForm.elements.state.value = product.location?.state || "";
+  createForm.elements.locationName.value = product.locationName || "";
+  if (createForm.elements.images) {
+    createForm.elements.images.value = "";
+  }
+
+  const existingUrls = Array.isArray(product.images) ? product.images : [];
+  const existingPublicIds = Array.isArray(product.imagePublicIds)
+    ? product.imagePublicIds
+    : [];
+  editableListingImages = existingUrls
+    .map((url, index) => ({
+      url,
+      publicId: existingPublicIds[index] || "",
+    }))
+    .filter((image) => image.url && image.publicId);
+  removedImagePublicIds.clear();
+  renderEditableImages();
+};
+
+const renderAnalytics = ({ listings, purchases, favorites, messagesCount }) => {
+  if (!analyticsGrid) {
+    return;
+  }
+
+  const soldListings = listings.filter((item) => item.status === "Sold").length;
+  const pendingListings = listings.filter((item) => !item.isApproved).length;
+  const cards = [
+    {
+      icon: "📦",
+      value: listings.length,
+      label: "Total listings",
+      trend: `${pendingListings} pending review`,
+      trendClass: pendingListings > 0 ? "down" : "up",
+    },
+    {
+      icon: "🛒",
+      value: purchases.length,
+      label: "Items purchased",
+      trend: "Your completed purchases",
+      trendClass: "up",
+    },
+    {
+      icon: "💬",
+      value: messagesCount,
+      label: "Messages",
+      trend: "Conversation activity",
+      trendClass: "up",
+    },
+    {
+      icon: "✅",
+      value: soldListings,
+      label: "Sold listings",
+      trend: `${favorites.length} favorites saved`,
+      trendClass: "up",
+    },
+  ];
+
+  analyticsGrid.innerHTML = cards
+    .map(
+      (card) => `
+      <article class="analytics-card">
+        <div class="analytics-card-header">
+          <span class="analytics-icon">${card.icon}</span>
+          <span class="analytics-card-change ${card.trendClass}">${ui.escapeHtml(card.trend)}</span>
+        </div>
+        <p class="analytics-card-value">${ui.escapeHtml(String(card.value))}</p>
+        <p class="analytics-card-label">${ui.escapeHtml(card.label)}</p>
+      </article>
+    `,
+    )
+    .join("");
+};
+
+const openCreateListingModal = ({ product } = {}) => {
+  if (!createListingModal) {
+    return;
+  }
+
+  if (product?._id) {
+    editingListingId = product._id;
+    prefillListingForm(product);
+  } else {
+    resetListingFormToCreate();
+  }
+  syncListingModalMode();
+
+  createListingModal.classList.add("open");
+  createListingModal.setAttribute("aria-hidden", "false");
+};
+
+const closeCreateListingModal = () => {
+  if (!createListingModal) {
+    return;
+  }
+  createListingModal.classList.remove("open");
+  createListingModal.setAttribute("aria-hidden", "true");
+  resetListingFormToCreate();
+};
 
 const renderListings = (listings) => {
   if (!listingsGrid) {
     return;
   }
+
+  editableListingsById = new Map(
+    listings.map((listing) => [String(listing._id), listing]),
+  );
+
   if (!listings.length) {
     listingsGrid.innerHTML =
       "<div class='notice'>You have no listings yet.</div>";
@@ -21,7 +346,9 @@ const renderListings = (listings) => {
       const safeTitle = ui.escapeHtml(product.title);
       const statusText = ui.escapeHtml(product.status);
       const approvalText = product.isApproved ? "Approved" : "Pending review";
-      const soldMeta = product.soldAt ? `Sold on ${ui.date(product.soldAt)}` : "";
+      const soldMeta = product.soldAt
+        ? `Sold on ${ui.date(product.soldAt)}`
+        : "";
       const buyerMeta = product.buyer?.name
         ? `Buyer: ${ui.escapeHtml(product.buyer.name)}`
         : product.status === "Sold"
@@ -29,6 +356,7 @@ const renderListings = (listings) => {
           : "";
       const actions = [
         `<a class="btn secondary" href="/product.html?id=${product._id}">View</a>`,
+        `<button class="btn secondary" type="button" data-edit-listing="${product._id}">Edit</button>`,
       ];
       if (product.status !== "Sold" || !product.buyer) {
         const saleActionLabel =
@@ -68,10 +396,28 @@ const renderListings = (listings) => {
         title: decodeURIComponent(btn.dataset.title || "listing"),
         buyerId: btn.dataset.buyerId || "",
         onSuccess: async (result) => {
-          ui.setNotice("dashNotice", result.message || "Listing marked as sold.");
+          ui.setNotice(
+            "dashNotice",
+            result.message || "Listing marked as sold.",
+          );
           await loadDashboard();
         },
       });
+    });
+  });
+
+  document.querySelectorAll("[data-edit-listing]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const listingId = btn.dataset.editListing;
+      if (!listingId) {
+        return;
+      }
+      const listing = editableListingsById.get(String(listingId));
+      if (!listing) {
+        ui.setNotice("dashNotice", "Could not load listing for editing.");
+        return;
+      }
+      openCreateListingModal({ product: listing });
     });
   });
 };
@@ -139,7 +485,9 @@ const renderFavorites = (favorites) => {
           .filter(Boolean)
           .join(", ");
       const safeTitle = ui.escapeHtml(fav.product?.title || "Listing");
-      const safeLocationText = ui.escapeHtml(locationText || "Location unavailable");
+      const safeLocationText = ui.escapeHtml(
+        locationText || "Location unavailable",
+      );
       return `
       <div class="card">
         <div class="card-media">
@@ -187,12 +535,35 @@ const renderFavorites = (favorites) => {
 const loadDashboard = async () => {
   ui.showLoader("dashLoader", true);
   try {
-    const [me, listings, purchases, favorites] = await Promise.all([
+    const [me, listings, purchases, favorites, messages] = await Promise.all([
       api.request("/api/users/me"),
       api.request("/api/users/me/listings"),
       api.request("/api/users/me/purchases"),
       api.request("/api/favorites"),
+      api.request("/api/messages").catch(() => []),
     ]);
+
+    const messagesCount = Array.isArray(messages) ? messages.length : 0;
+
+    if (listingsCount) {
+      listingsCount.textContent = `${listings.length} listing${
+        listings.length === 1 ? "" : "s"
+      }`;
+    }
+    if (favoritesCount) {
+      favoritesCount.textContent = `${favorites.length} favorite${
+        favorites.length === 1 ? "" : "s"
+      }`;
+    }
+    if (activeListingsStat) {
+      activeListingsStat.textContent = String(listings.length);
+    }
+    if (messagesStat) {
+      messagesStat.textContent = String(messagesCount);
+    }
+    if (favoritesStat) {
+      favoritesStat.textContent = String(favorites.length);
+    }
 
     if (profileCard) {
       const identityLine = [me.email, me.phone].filter(Boolean).join(" - ");
@@ -211,6 +582,7 @@ const loadDashboard = async () => {
     renderListings(listings);
     renderPurchases(purchases);
     renderFavorites(favorites);
+    renderAnalytics({ listings, purchases, favorites, messagesCount });
   } catch (error) {
     ui.setNotice("dashNotice", error.message);
   } finally {
@@ -222,16 +594,34 @@ if (createForm) {
   createForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const formData = new FormData(createForm);
+    const isEditing = Boolean(editingListingId);
+    const endpoint = isEditing
+      ? `/api/products/${editingListingId}`
+      : "/api/products";
+    const method = isEditing ? "PATCH" : "POST";
+
+    if (isEditing) {
+      const keepImagePublicIds = editableListingImages
+        .map((image) => image.publicId)
+        .filter((publicId) => publicId && !removedImagePublicIds.has(publicId));
+      formData.append("keepImagePublicIds", JSON.stringify(keepImagePublicIds));
+    }
 
     ui.showLoader("dashLoader", true);
     ui.setNotice("dashNotice", "");
     try {
-      await api.request("/api/products", {
-        method: "POST",
+      await api.request(endpoint, {
+        method,
         body: formData,
       });
-      createForm.reset();
-      ui.setNotice("dashNotice", "Listing created and sent for approval.");
+
+      closeCreateListingModal();
+      ui.setNotice(
+        "dashNotice",
+        isEditing
+          ? "Listing updated successfully."
+          : "Listing created and sent for approval.",
+      );
       loadDashboard();
     } catch (error) {
       ui.setNotice("dashNotice", error.message);
@@ -240,5 +630,33 @@ if (createForm) {
     }
   });
 }
+
+if (openCreateListingModalBtn) {
+  openCreateListingModalBtn.addEventListener("click", () =>
+    openCreateListingModal(),
+  );
+}
+
+if (createListingModalClose) {
+  createListingModalClose.addEventListener("click", closeCreateListingModal);
+}
+
+if (createListingModalCancel) {
+  createListingModalCancel.addEventListener("click", closeCreateListingModal);
+}
+
+if (createListingModal) {
+  createListingModal.addEventListener("click", (event) => {
+    if (event.target === createListingModal) {
+      closeCreateListingModal();
+    }
+  });
+}
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeCreateListingModal();
+  }
+});
 
 loadDashboard();

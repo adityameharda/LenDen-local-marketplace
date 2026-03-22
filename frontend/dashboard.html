@@ -16,7 +16,6 @@
     <header class="navbar">
       <div class="container">
         <a class="brand" href="/index.html" aria-label="Go to home page">
-          <img class="brand-mark" src="/favicon.svg" alt="" aria-hidden="true" />
           <span>LeniDeni</span>
         </a>
         <nav class="nav-links">
@@ -36,15 +35,145 @@
       </div>
     </header>
 
-    <main class="container">
-      <h2>Your dashboard</h2>
-      <div id="dashLoader" class="loader">Loading dashboard...</div>
+    <main class="container dashboard-page">
+      <div style="margin-bottom: 32px">
+        <h2
+          style="
+            font-size: 32px;
+            margin: 24px 0 8px 0;
+            font-weight: 800;
+            color: var(--on-surface);
+          "
+        >
+          Your Dashboard
+        </h2>
+        <p style="color: var(--on-surface-variant); margin: 0; font-size: 16px">
+          Manage your profile, listings, and sales.
+        </p>
+      </div>
+      <div id="dashLoader" class="loader">⏳ Loading dashboard...</div>
       <p id="dashNotice" class="notice"></p>
-      <section id="profileCard"></section>
 
-      <h3 class="section-title">Create listing</h3>
-      <section class="form-card">
-        <form id="createForm" class="form-grid">
+      <!-- Welcome Hero Section -->
+      <section class="dashboard-hero">
+        <div class="hero-content-dash">
+          <h2
+            style="
+              font-size: 28px;
+              margin: 0 0 8px 0;
+              font-weight: 800;
+              color: var(--on-primary);
+            "
+          >
+            Welcome back!
+          </h2>
+          <p
+            style="
+              color: rgba(255, 255, 255, 0.9);
+              margin: 0;
+              font-size: 15px;
+              line-height: 1.6;
+            "
+          >
+            Your shop is performing great. Check your stats below and manage
+            your listings to grow your business.
+          </p>
+        </div>
+        <div class="hero-stats-dash">
+          <div class="stat-mini">
+            <span class="stat-value" id="activeListingsStat">0</span>
+            <p class="stat-label">Active Listings</p>
+          </div>
+          <div class="stat-mini">
+            <span class="stat-value" id="messagesStat">0</span>
+            <p class="stat-label">Messages</p>
+          </div>
+          <div class="stat-mini">
+            <span class="stat-value" id="favoritesStat">0</span>
+            <p class="stat-label">Favorites</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Profile Card Section -->
+      <section class="dashboard-section">
+        <h3 class="section-title">Profile Information</h3>
+        <div id="profileCard" class="dashboard-slot"></div>
+      </section>
+
+      <!-- Analytics Overview -->
+      <section class="dashboard-section">
+        <h3 class="section-title">Your Activity</h3>
+        <div class="analytics-grid dashboard-slot" id="analyticsGrid"></div>
+      </section>
+
+      <!-- Create New Listing Section -->
+      <section class="dashboard-section dashboard-section-compact">
+        <h3 class="section-title">Create New Listing</h3>
+        <div class="form-card dashboard-inline-form-card">
+          <p class="meta" style="margin: 0 0 16px 0">
+            Add a new listing in seconds from a focused popup form.
+          </p>
+          <button class="btn" type="button" id="openCreateListingModal">
+            Create new listing
+          </button>
+        </div>
+      </section>
+
+      <!-- Your Listings Section -->
+      <section class="dashboard-section">
+        <div class="dashboard-section-head">
+          <h3 class="section-title" style="margin: 0">Your Listings</h3>
+          <span
+            id="listingsCount"
+            class="dashboard-count-badge dashboard-count-badge-primary"
+            >0 listings</span
+          >
+        </div>
+        <section class="card-grid" id="listingsGrid"></section>
+      </section>
+
+      <!-- Purchased Items Section -->
+      <section class="dashboard-section">
+        <div class="dashboard-section-head">
+          <h3 class="section-title" style="margin: 0">Purchased Items</h3>
+        </div>
+        <section class="card-grid" id="purchasesGrid"></section>
+      </section>
+
+      <!-- Favorites Section -->
+      <section class="dashboard-section">
+        <div class="dashboard-section-head">
+          <h3 class="section-title" style="margin: 0">Your Favorites</h3>
+          <span
+            id="favoritesCount"
+            class="dashboard-count-badge dashboard-count-badge-secondary"
+            >0 favorites</span
+          >
+        </div>
+        <section class="card-grid" id="favoritesGrid"></section>
+      </section>
+    </main>
+
+    <div class="modal-overlay" id="createListingModal" aria-hidden="true">
+      <div
+        class="modal create-listing-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="createListingModalTitle"
+      >
+        <div class="modal-header">
+          <h3 id="createListingModalTitle">Create New Listing</h3>
+          <button
+            class="icon-btn"
+            type="button"
+            id="createListingModalClose"
+            aria-label="Close"
+          >
+            X
+          </button>
+        </div>
+        <form id="createForm" class="form-grid" style="padding: 20px 24px">
           <input class="input" name="title" placeholder="Title" required />
           <textarea
             class="input"
@@ -93,19 +222,31 @@
             placeholder="Location name (area or landmark)"
           />
           <input class="input" name="images" type="file" multiple />
-          <button class="btn" type="submit">Publish</button>
+          <div
+            id="listingExistingImages"
+            class="listing-existing-images"
+            hidden
+          ></div>
         </form>
-      </section>
-
-      <h3 class="section-title">Your listings</h3>
-      <section class="card-grid" id="listingsGrid"></section>
-
-      <h3 class="section-title">Purchased items</h3>
-      <section class="card-grid" id="purchasesGrid"></section>
-
-      <h3 class="section-title">Favorites</h3>
-      <section class="card-grid" id="favoritesGrid"></section>
-    </main>
+        <div class="modal-footer">
+          <button
+            class="btn"
+            type="submit"
+            form="createForm"
+            id="createListingSubmitBtn"
+          >
+            Publish Listing
+          </button>
+          <button
+            class="btn secondary"
+            type="button"
+            id="createListingModalCancel"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
 
     <script src="/js/api.js"></script>
     <script src="/js/shared.js"></script>
