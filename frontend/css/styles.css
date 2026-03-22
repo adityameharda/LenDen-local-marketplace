@@ -121,6 +121,24 @@ img {
   color: var(--primary);
 }
 
+.nav-links a.btn {
+  color: var(--on-primary);
+}
+
+.nav-links a.btn:hover {
+  background: linear-gradient(135deg, var(--accent-dark), #005555);
+  color: var(--on-primary);
+}
+
+.nav-links a.btn.secondary {
+  color: var(--on-surface);
+}
+
+.nav-links a.btn.secondary:hover {
+  background: rgba(224, 227, 225, 0.8);
+  color: var(--on-surface);
+}
+
 .icon-btn {
   background: #fff;
   border: 1px solid var(--border);
