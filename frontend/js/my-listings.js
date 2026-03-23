@@ -27,7 +27,9 @@ const loadListings = async () => {
         const safeImageUrl = ui.escapeHtml(imageUrl);
         const safeTitle = ui.escapeHtml(product.title);
         const approvalText = product.isApproved ? "Approved" : "Pending review";
-        const soldMeta = product.soldAt ? `Sold on ${ui.date(product.soldAt)}` : "";
+        const soldMeta = product.soldAt
+          ? `Sold on ${ui.date(product.soldAt)}`
+          : "";
         const buyerMeta = product.buyer?.name
           ? `Buyer: ${ui.escapeHtml(product.buyer.name)}`
           : product.status === "Sold"
@@ -35,6 +37,9 @@ const loadListings = async () => {
             : "";
         const actions = [
           `<a class="btn secondary" href="/product.html?id=${product._id}">View</a>`,
+          `<button class="btn secondary" type="button" data-delete-listing="${product._id}" data-title="${encodeURIComponent(
+            product.title,
+          )}">Delete</button>`,
         ];
         if (product.status !== "Sold" || !product.buyer) {
           const saleActionLabel =
@@ -84,6 +89,40 @@ const loadListings = async () => {
         });
       });
     });
+
+    document.querySelectorAll("[data-delete-listing]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const listingId = btn.dataset.deleteListing;
+        if (!listingId) {
+          return;
+        }
+
+        const title = decodeURIComponent(btn.dataset.title || "this listing");
+        const shouldDelete = window.confirm(
+          `Delete "${title}"? This action cannot be undone.`,
+        );
+        if (!shouldDelete) {
+          return;
+        }
+
+        ui.showLoader("myListingsLoader", true);
+        ui.setNotice("myListingsNotice", "");
+        try {
+          const result = await api.request(`/api/products/${listingId}`, {
+            method: "DELETE",
+          });
+          ui.setNotice(
+            "myListingsNotice",
+            result.message || "Listing removed.",
+          );
+          await loadListings();
+        } catch (error) {
+          ui.setNotice("myListingsNotice", error.message);
+        } finally {
+          ui.showLoader("myListingsLoader", false);
+        }
+      });
+    });
   } catch (error) {
     ui.setNotice("myListingsNotice", error.message);
   } finally {
@@ -92,4 +131,3 @@ const loadListings = async () => {
 };
 
 loadListings();
-

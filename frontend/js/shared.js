@@ -266,7 +266,7 @@ const ensureFooter = () => {
         <div class="site-footer-meta">Buy, sell, and chat securely in your local community.</div>
       </div>
       <div class="site-footer-links" aria-label="Footer links">
-        <a class="site-footer-link" href="/index.html">Browse</a>
+        <a class="site-footer-link" href="/browse.html">Browse</a>
         <a class="site-footer-link" href="/dashboard.html?create=1" data-auth="user">Create listing</a>
         <a class="site-footer-link" href="/messages.html" data-auth="user">Messages</a>
         <a class="site-footer-link" href="/register.html" data-auth="guest">Create account</a>
@@ -278,8 +278,71 @@ const ensureFooter = () => {
   document.body.appendChild(footer);
 };
 
+const enhanceNavbar = () => {
+  document.querySelectorAll(".navbar .container").forEach((container) => {
+    if (container.dataset.navEnhanced === "1") {
+      return;
+    }
+
+    const nav = container.querySelector(".nav-links");
+    if (!nav) {
+      return;
+    }
+
+    const centerGroup = document.createElement("div");
+    centerGroup.className = "nav-links-center";
+
+    const authGroup = document.createElement("div");
+    authGroup.className = "nav-links-auth";
+
+    [...nav.children].forEach((item) => {
+      const href = (item.getAttribute("href") || "").toLowerCase();
+      const isLogout = item.hasAttribute("data-logout");
+      const isLogin = href.includes("/login.html");
+
+      if (isLogout || isLogin) {
+        authGroup.appendChild(item);
+      } else {
+        centerGroup.appendChild(item);
+      }
+    });
+
+    const searchForm = document.createElement("form");
+    searchForm.className = "nav-search";
+    searchForm.setAttribute("role", "search");
+    searchForm.setAttribute("action", "/browse.html");
+    searchForm.setAttribute("method", "get");
+    searchForm.innerHTML = `
+      <input class="nav-search-input" type="search" name="search" placeholder="Search listings" aria-label="Search listings" />
+      <button class="nav-search-btn" type="submit" aria-label="Search">
+        <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10.5 4.75a5.75 5.75 0 1 0 0 11.5 5.75 5.75 0 0 0 0-11.5Z" stroke="currentColor" stroke-width="2"/>
+          <path d="m15 15 4.25 4.25" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    `;
+
+    const currentPath = window.location.pathname || "";
+    if (currentPath.includes("/browse.html")) {
+      const search = new URLSearchParams(window.location.search).get("search");
+      const input = searchForm.querySelector(".nav-search-input");
+      if (input && search) {
+        input.value = search;
+      }
+    }
+
+    nav.innerHTML = "";
+    nav.appendChild(centerGroup);
+    nav.appendChild(searchForm);
+    nav.appendChild(authGroup);
+
+    container.dataset.navEnhanced = "1";
+  });
+};
+
 document.addEventListener("DOMContentLoaded", async () => {
   const user = await auth.ensureUser();
+  enhanceNavbar();
   ensureFooter();
   auth.applyNavState(user);
 });

@@ -31,6 +31,7 @@ let editableListingsById = new Map();
 let editableListingImages = [];
 let removedImagePublicIds = new Set();
 let draggingImagePublicId = "";
+let isListingSubmitInFlight = false;
 
 const reorderEditableImages = (fromPublicId, toPublicId) => {
   if (!fromPublicId || !toPublicId || fromPublicId === toPublicId) {
@@ -202,6 +203,21 @@ const syncListingModalMode = () => {
   }
 };
 
+const setListingSubmitPending = (pending) => {
+  if (!createListingSubmitBtn) {
+    return;
+  }
+
+  createListingSubmitBtn.disabled = pending;
+  if (pending) {
+    createListingSubmitBtn.textContent = editingListingId
+      ? "Saving..."
+      : "Publishing...";
+  } else {
+    syncListingModalMode();
+  }
+};
+
 const resetListingFormToCreate = () => {
   editingListingId = "";
   editableListingImages = [];
@@ -357,6 +373,9 @@ const renderListings = (listings) => {
       const actions = [
         `<a class="btn secondary" href="/product.html?id=${product._id}">View</a>`,
         `<button class="btn secondary" type="button" data-edit-listing="${product._id}">Edit</button>`,
+        `<button class="btn secondary" type="button" data-delete-listing="${product._id}" data-title="${encodeURIComponent(
+          product.title,
+        )}">Delete</button>`,
       ];
       if (product.status !== "Sold" || !product.buyer) {
         const saleActionLabel =
@@ -418,6 +437,37 @@ const renderListings = (listings) => {
         return;
       }
       openCreateListingModal({ product: listing });
+    });
+  });
+
+  document.querySelectorAll("[data-delete-listing]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const listingId = btn.dataset.deleteListing;
+      if (!listingId) {
+        return;
+      }
+
+      const title = decodeURIComponent(btn.dataset.title || "this listing");
+      const shouldDelete = window.confirm(
+        `Delete "${title}"? This action cannot be undone.`,
+      );
+      if (!shouldDelete) {
+        return;
+      }
+
+      ui.showLoader("dashLoader", true);
+      ui.setNotice("dashNotice", "");
+      try {
+        const result = await api.request(`/api/products/${listingId}`, {
+          method: "DELETE",
+        });
+        ui.setNotice("dashNotice", result.message || "Listing removed.");
+        await loadDashboard();
+      } catch (error) {
+        ui.setNotice("dashNotice", error.message);
+      } finally {
+        ui.showLoader("dashLoader", false);
+      }
     });
   });
 };
@@ -593,6 +643,13 @@ const loadDashboard = async () => {
 if (createForm) {
   createForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (isListingSubmitInFlight) {
+      return;
+    }
+
+    isListingSubmitInFlight = true;
+    setListingSubmitPending(true);
+
     const formData = new FormData(createForm);
     const isEditing = Boolean(editingListingId);
     const endpoint = isEditing
@@ -627,6 +684,8 @@ if (createForm) {
       ui.setNotice("dashNotice", error.message);
     } finally {
       ui.showLoader("dashLoader", false);
+      isListingSubmitInFlight = false;
+      setListingSubmitPending(false);
     }
   });
 }

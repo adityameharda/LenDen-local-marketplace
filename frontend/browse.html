@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Browse marketplace listings with filters on LeniDeni."
+    />
+    <meta name="theme-color" content="#1555b8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Browse Listings - LeniDeni</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <header class="navbar">
+      <div class="container">
+        <a class="brand" href="/index.html" aria-label="Go to home page">
+          <span>LeniDeni</span>
+        </a>
+        <nav class="nav-links">
+          <a href="/browse.html">Browse</a>
+          <a href="/dashboard.html" data-auth="user">Dashboard</a>
+          <a href="/messages.html" data-auth="user">Messages</a>
+          <a href="/admin.html" data-role="admin">Admin</a>
+          <a href="/login.html" data-auth="guest">Login</a>
+          <a href="/register.html" class="btn" data-auth="guest">Sell</a>
+          <a href="/dashboard.html?create=1" data-auth="user">Create listing</a>
+          <button
+            class="btn secondary"
+            type="button"
+            data-auth="user"
+            data-logout
+          >
+            Logout
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="browse-heading">
+        <h1>Browse Listings</h1>
+        <p class="meta">
+          Filter by category, location, condition, and price to find the best
+          match.
+        </p>
+      </section>
+
+      <section class="browse-layout">
+        <aside class="browse-sidebar">
+          <form
+            id="filterForm"
+            class="filter-bar browse-filters"
+            aria-label="Search listings"
+          >
+            <div class="browse-filter-title">Filters</div>
+            <input class="input" name="search" placeholder="Search listings" />
+            <select class="input" name="category">
+              <option value="">Any category</option>
+              <option value="Electronics">Electronics & Computers</option>
+              <option value="Furniture">Furniture</option>
+              <option value="Fashion">Fashion & Apparel</option>
+              <option value="Home">Home & Garden</option>
+              <option value="Vehicles">Vehicles & Parts</option>
+              <option value="Sports">Sports & Outdoors</option>
+              <option value="Books">Books & Media</option>
+              <option value="Toys">Toys & Games</option>
+              <option value="Collectibles">Collectibles</option>
+              <option value="Jewelry">Jewelry & Watches</option>
+              <option value="Baby">Baby & Kids</option>
+              <option value="Pets">Pets & Supplies</option>
+              <option value="Beauty">Health & Beauty</option>
+              <option value="Music">Musical Instruments</option>
+              <option value="Tools">Tools & Equipment</option>
+              <option value="Services">Services</option>
+              <option value="Other">Other</option>
+            </select>
+            <div class="browse-inline-fields">
+              <input
+                class="input"
+                name="minPrice"
+                placeholder="Min"
+                type="number"
+              />
+              <input
+                class="input"
+                name="maxPrice"
+                placeholder="Max"
+                type="number"
+              />
+            </div>
+            <select class="input" name="sort">
+              <option value="">Sort by</option>
+              <option value="newest">Newest</option>
+              <option value="price-asc">Price low to high</option>
+              <option value="price-desc">Price high to low</option>
+            </select>
+            <select class="input" name="condition">
+              <option value="">Any condition</option>
+              <option value="New">New</option>
+              <option value="Used">Used</option>
+            </select>
+            <input class="input" name="city" placeholder="City" />
+            <input class="input" name="state" placeholder="State" />
+            <input
+              class="input"
+              name="locationName"
+              placeholder="Location name"
+            />
+            <div class="browse-filter-actions">
+              <button class="btn" type="submit">Apply filters</button>
+              <button class="btn secondary" type="button" id="clearFiltersBtn">
+                Clear
+              </button>
+            </div>
+          </form>
+        </aside>
+
+        <section class="browse-main" aria-live="polite">
+          <div class="browse-main-head">
+            <h2>Available Items</h2>
+            <p id="browseCount" class="meta">Loading...</p>
+          </div>
+          <div id="listLoader" class="loader">Loading listings...</div>
+          <section class="card-grid" id="productGrid"></section>
+        </section>
+      </section>
+    </main>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/shared.js"></script>
+    <script src="/js/browse.js"></script>
+  </body>
+</html>

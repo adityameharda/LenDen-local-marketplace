@@ -20,15 +20,13 @@
           <span>LeniDeni</span>
         </a>
         <nav class="nav-links">
-          <a href="/index.html">Browse</a>
+          <a href="/browse.html">Browse</a>
           <a href="/dashboard.html" data-auth="user">Dashboard</a>
           <a href="/messages.html" data-auth="user">Messages</a>
           <a href="/admin.html" data-role="admin">Admin</a>
           <a href="/login.html" data-auth="guest">Login</a>
           <a href="/register.html" class="btn" data-auth="guest">Sell</a>
-          <a href="/dashboard.html?create=1" class="btn" data-auth="user"
-            >Create listing</a
-          >
+          <a href="/dashboard.html?create=1" data-auth="user">Create listing</a>
           <button
             class="btn secondary"
             type="button"
@@ -50,7 +48,7 @@
             LeniDeni brings verified sellers, clean listings, and real-time
             messaging together so you can move faster than big marketplaces.
           </p>
-          
+
           <div class="hero-cta">
             <a href="/dashboard.html?create=1" class="btn" data-auth="user"
               >Start selling now</a
@@ -58,7 +56,7 @@
             <a href="/register.html" class="btn" data-auth="guest"
               >Start selling now</a
             >
-            <a href="#listings" class="btn secondary">Browse listings</a>
+            <a href="/browse.html" class="btn secondary">Browse listings</a>
           </div>
 
           <div class="hero-stats">
@@ -79,7 +77,10 @@
         <div class="hero-visual">
           <div class="hero-product-showcase">
             <div class="product-image-main">
-              <img src="https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=500&h=500&fit=crop" alt="Premium marketplace product showcase" />
+              <img
+                src="https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=500&h=500&fit=crop"
+                alt="Premium marketplace product showcase"
+              />
             </div>
             <div class="product-badge featured-badge">
               <div class="badge-small">
@@ -90,67 +91,20 @@
           </div>
         </div>
       </section>
+
+      <section class="dashboard-section" style="margin-top: 8px">
+        <div class="dashboard-section-head">
+          <h3 class="section-title" style="margin: 0">Explore Live Listings</h3>
         </div>
+        <p class="meta" style="margin: 0 0 14px 0">
+          We moved the marketplace catalog to a dedicated Browse page for a
+          cleaner shopping experience.
+        </p>
+        <a class="btn" href="/browse.html">Open Browse Page</a>
       </section>
-
-      <div id="listings"></div>
-      <form id="filterForm" class="filter-bar" aria-label="Search listings">
-        <input class="input" name="search" placeholder="Search listings" />
-        <select class="input" name="category">
-          <option value="">Any category</option>
-          <option value="Electronics">Electronics & Computers</option>
-          <option value="Furniture">Furniture</option>
-          <option value="Fashion">Fashion & Apparel</option>
-          <option value="Home">Home & Garden</option>
-          <option value="Vehicles">Vehicles & Parts</option>
-          <option value="Sports">Sports & Outdoors</option>
-          <option value="Books">Books & Media</option>
-          <option value="Toys">Toys & Games</option>
-          <option value="Collectibles">Collectibles</option>
-          <option value="Jewelry">Jewelry & Watches</option>
-          <option value="Baby">Baby & Kids</option>
-          <option value="Pets">Pets & Supplies</option>
-          <option value="Beauty">Health & Beauty</option>
-          <option value="Music">Musical Instruments</option>
-          <option value="Tools">Tools & Equipment</option>
-          <option value="Services">Services</option>
-          <option value="Other">Other</option>
-        </select>
-        <input
-          class="input"
-          name="minPrice"
-          placeholder="Min price"
-          type="number"
-        />
-        <input
-          class="input"
-          name="maxPrice"
-          placeholder="Max price"
-          type="number"
-        />
-        <select class="input" name="sort">
-          <option value="">Sort by</option>
-          <option value="newest">Newest</option>
-          <option value="price-asc">Price low to high</option>
-          <option value="price-desc">Price high to low</option>
-        </select>
-        <select class="input" name="condition">
-          <option value="">Any condition</option>
-          <option value="New">New</option>
-          <option value="Used">Used</option>
-        </select>
-        <input class="input" name="city" placeholder="City" />
-        <input class="input" name="state" placeholder="State" />
-        <input class="input" name="locationName" placeholder="Location name" />
-        <button class="btn" type="submit">Search</button>
-      </form>
-
-      <div id="listLoader" class="loader">Loading listings...</div>
-      <section class="card-grid" id="productGrid" aria-live="polite"></section>
     </main>
 
     <script src="/js/api.js"></script>
     <script src="/js/shared.js"></script>
-    <script src="/js/index.js"></script>
   </body>
 </html>

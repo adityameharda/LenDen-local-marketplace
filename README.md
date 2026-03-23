@@ -137,6 +137,22 @@ Create a .env file in the project root.
 - ADMIN_PASSWORD
 - DEFAULT_COUNTRY (default: India)
 
+### Admin listing review email (optional but recommended)
+
+- LISTING_REVIEW_EMAIL (admin inbox that receives new listing notifications)
+- PUBLIC_BASE_URL or APP_BASE_URL (used to build approve/reject links)
+- LISTING_REVIEW_TOKEN_SECRET (optional, falls back to JWT_SECRET)
+- LISTING_REVIEW_TOKEN_EXPIRES_IN (default: 3d)
+
+### SMTP email settings (required for sending emails)
+
+- SMTP_HOST
+- SMTP_PORT
+- SMTP_USER
+- SMTP_PASS
+- SMTP_SECURE (true/false, optional; auto true when port 465)
+- MAIL_FROM (optional, defaults to SMTP_USER)
+
 ### Cloudinary (required only if uploading images)
 
 Use one of the following approaches:
@@ -165,6 +181,20 @@ CLOUDINARY_URL=cloudinary://<api_key>:<api_secret>@<cloud_name>
 # CLOUDINARY_CLOUD_NAME=<cloud_name>
 # CLOUDINARY_API_KEY=<api_key>
 # CLOUDINARY_API_SECRET=<api_secret>
+
+# Admin listing review email
+LISTING_REVIEW_EMAIL=admin@lenideni.com
+PUBLIC_BASE_URL=http://localhost:5000
+LISTING_REVIEW_TOKEN_SECRET=another_long_random_secret
+LISTING_REVIEW_TOKEN_EXPIRES_IN=3d
+
+# SMTP
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_app_password
+SMTP_SECURE=false
+MAIL_FROM="LeniDeni <your_email@gmail.com>"
 ```
 
 ## Running the Application

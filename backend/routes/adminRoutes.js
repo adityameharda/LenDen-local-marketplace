@@ -6,6 +6,7 @@ const {
   listListings,
   approveListing,
   rejectListing,
+  reviewListingByEmailAction,
   removeListing,
   getStats,
 } = require("../controllers/adminController");
@@ -13,6 +14,8 @@ const { protect } = require("../middleware/authMiddleware");
 const { requireRole } = require("../middleware/roleMiddleware");
 
 const router = express.Router();
+
+router.get("/listings/:id/email-action/:action", reviewListingByEmailAction);
 
 router.use(protect, requireRole("admin"));
 

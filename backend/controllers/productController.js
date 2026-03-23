@@ -8,6 +8,11 @@ const {
   deleteCloudinaryImages,
 } = require("../utils/cloudinary");
 const { resolveCoordinates } = require("../utils/geocode");
+const { sendEmail } = require("../utils/mailer");
+const {
+  signListingReviewActionToken,
+} = require("../utils/listingReviewActionToken");
+const { buildListingReviewEmail } = require("../utils/listingReviewEmail");
 
 const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
 const escapeRegex = (value) =>
@@ -41,6 +46,59 @@ const resolveId = (value) => {
     return value;
   }
   return String(value._id || value.id || value);
+};
+
+const getServerBaseUrl = (req) => {
+  const configuredBaseUrl =
+    process.env.PUBLIC_BASE_URL || process.env.APP_BASE_URL;
+  if (configuredBaseUrl) {
+    return String(configuredBaseUrl).replace(/\/$/, "");
+  }
+
+  return `${req.protocol}://${req.get("host")}`;
+};
+
+const notifyAdminForListingReview = async ({ req, product }) => {
+  const recipient =
+    process.env.LISTING_REVIEW_EMAIL ||
+    process.env.ADMIN_NOTIFY_EMAIL ||
+    process.env.ADMIN_EMAIL;
+
+  if (!recipient) {
+    return;
+  }
+
+  const baseUrl = getServerBaseUrl(req);
+  const listingId = String(product._id);
+  const approveToken = signListingReviewActionToken({
+    listingId,
+    action: "approve",
+  });
+  const rejectToken = signListingReviewActionToken({
+    listingId,
+    action: "reject",
+  });
+
+  const approveUrl = `${baseUrl}/api/admin/listings/${listingId}/email-action/approve?token=${encodeURIComponent(
+    approveToken,
+  )}`;
+  const rejectUrl = `${baseUrl}/api/admin/listings/${listingId}/email-action/reject?token=${encodeURIComponent(
+    rejectToken,
+  )}`;
+
+  const { subject, html, text } = buildListingReviewEmail({
+    listing: product,
+    seller: req.user,
+    approveUrl,
+    rejectUrl,
+  });
+
+  await sendEmail({
+    to: recipient,
+    subject,
+    html,
+    text,
+  });
 };
 
 const createProduct = asyncHandler(async (req, res) => {
@@ -116,6 +174,12 @@ const createProduct = asyncHandler(async (req, res) => {
   } catch (error) {
     await deleteCloudinaryImages(uploadedImages.publicIds);
     throw error;
+  }
+
+  try {
+    await notifyAdminForListingReview({ req, product });
+  } catch (error) {
+    console.error("Failed to send listing review email:", error.message);
   }
 
   res.status(201).json(product);
