@@ -295,11 +295,39 @@ const enhanceNavbar = () => {
     const authGroup = document.createElement("div");
     authGroup.className = "nav-links-auth";
 
+    // Get current user state
+    const user = auth.getUser();
+    const isLoggedIn = Boolean(user);
+    const isAdmin = user?.role === "admin";
+
+    // Reorganize links and apply visibility
     [...nav.children].forEach((item) => {
       const href = (item.getAttribute("href") || "").toLowerCase();
+      const dataAuth = item.dataset.auth;
+      const dataRole = item.dataset.role;
       const isLogout = item.hasAttribute("data-logout");
       const isLogin = href.includes("/login.html");
 
+      // Determine if item should be visible
+      let shouldShow = true;
+
+      // Apply data-auth rule if present
+      if (dataAuth) {
+        shouldShow =
+          (dataAuth === "user" && isLoggedIn) ||
+          (dataAuth === "guest" && !isLoggedIn);
+      }
+
+      // Apply data-role rule if present (only if still showing)
+      if (shouldShow && dataRole) {
+        shouldShow = dataRole === "admin" && isAdmin;
+      }
+
+      if (!shouldShow) {
+        return; // Skip this item entirely
+      }
+
+      // Group into center or auth
       if (isLogout || isLogin) {
         authGroup.appendChild(item);
       } else {
@@ -307,6 +335,7 @@ const enhanceNavbar = () => {
       }
     });
 
+    // Create search form
     const searchForm = document.createElement("form");
     searchForm.className = "nav-search";
     searchForm.setAttribute("role", "search");
@@ -322,6 +351,7 @@ const enhanceNavbar = () => {
       </button>
     `;
 
+    // Restore search value if on browse page
     const currentPath = window.location.pathname || "";
     if (currentPath.includes("/browse.html")) {
       const search = new URLSearchParams(window.location.search).get("search");
@@ -331,10 +361,44 @@ const enhanceNavbar = () => {
       }
     }
 
+    // Mark active link based on current page
+    centerGroup.querySelectorAll("a").forEach((link) => {
+      const href = link.getAttribute("href") || "";
+      const hrefPath = href.split("?")[0]; // Remove query params for matching
+      const currentPagePath = currentPath.split("?")[0]; // Remove query params from current path
+
+      const isActive =
+        (currentPagePath.includes("dashboard.html") &&
+          hrefPath === "/dashboard.html" &&
+          !href.includes("?create")) || // Exact dashboard.html match (not create listing)
+        (currentPagePath.includes("browse.html") &&
+          hrefPath === "/browse.html") ||
+        (currentPagePath.includes("messages.html") &&
+          hrefPath === "/messages.html") ||
+        (currentPagePath.includes("admin.html") &&
+          hrefPath === "/admin.html") ||
+        (currentPagePath.includes("my-listings.html") &&
+          hrefPath === "/my-listings.html") ||
+        ((currentPagePath === "/" || currentPagePath.includes("index.html")) &&
+          hrefPath === "/index.html");
+
+      if (isActive) {
+        link.classList.add("active");
+      } else {
+        link.classList.remove("active");
+      }
+    });
+
+    // Rebuild nav-links with organized structure
     nav.innerHTML = "";
     nav.appendChild(centerGroup);
     nav.appendChild(searchForm);
     nav.appendChild(authGroup);
+
+    // Setup logout handlers
+    authGroup.querySelectorAll("[data-logout]").forEach((btn) => {
+      btn.addEventListener("click", () => auth.logout());
+    });
 
     container.dataset.navEnhanced = "1";
   });
@@ -342,7 +406,7 @@ const enhanceNavbar = () => {
 
 document.addEventListener("DOMContentLoaded", async () => {
   const user = await auth.ensureUser();
-  enhanceNavbar();
-  ensureFooter();
   auth.applyNavState(user);
+  enhanceNavbar(); // Call AFTER applyNavState so we have user data
+  ensureFooter();
 });
