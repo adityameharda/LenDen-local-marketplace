@@ -1,68 +1,88 @@
-const nodemailer = require("nodemailer");
+const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
-const toBoolean = (value) => String(value || "").toLowerCase() === "true";
+const hasMailConfig = () => Boolean(process.env.BREVO_API_KEY);
 
-const hasSmtpConfig = () =>
-  Boolean(
-    process.env.SMTP_HOST &&
-    process.env.SMTP_PORT &&
-    process.env.SMTP_USER &&
-    process.env.SMTP_PASS,
-  );
+const parseSender = () => {
+  const mailFrom = String(process.env.MAIL_FROM || "").trim();
+  const senderEmail = String(process.env.BREVO_SENDER_EMAIL || "").trim();
+  const senderName =
+    String(process.env.BREVO_SENDER_NAME || "").trim() || "LeniDeni";
 
-let transporter = null;
-
-const getTransporter = () => {
-  if (transporter) {
-    return transporter;
-  }
-
-  if (!hasSmtpConfig()) {
+  const fromValue = mailFrom || senderEmail;
+  if (!fromValue) {
     return null;
   }
 
-  const port = Number(process.env.SMTP_PORT);
-  const secure =
-    process.env.SMTP_SECURE !== undefined
-      ? toBoolean(process.env.SMTP_SECURE)
-      : port === 465;
-
-  transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port,
-    secure,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-
-  return transporter;
-};
-
-const getFromAddress = () =>
-  process.env.MAIL_FROM || process.env.SMTP_FROM || process.env.SMTP_USER || "";
-
-const sendEmail = async ({ to, subject, html, text }) => {
-  const client = getTransporter();
-  const from = getFromAddress();
-
-  if (!client || !to || !from) {
-    return { sent: false, reason: "Missing SMTP config, recipient, or sender" };
+  const match = fromValue.match(/^(.*)<([^>]+)>$/);
+  if (match) {
+    const name = match[1].trim().replace(/^"|"$/g, "") || senderName;
+    const email = match[2].trim();
+    if (!email) {
+      return null;
+    }
+    return { name, email };
   }
 
-  await client.sendMail({
-    from,
-    to,
-    subject,
-    html,
-    text,
-  });
+  return { name: senderName, email: fromValue };
+};
 
-  return { sent: true };
+const sendEmail = async ({ to, subject, html, text }) => {
+  const apiKey = String(process.env.BREVO_API_KEY || "").trim();
+  const sender = parseSender();
+  const recipient = String(to || "").trim();
+
+  if (!apiKey || !sender || !recipient) {
+    return {
+      sent: false,
+      reason: "Missing Brevo API key, sender config, or recipient",
+    };
+  }
+
+  const timeoutMs = Number(process.env.BREVO_TIMEOUT_MS || 30000);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(BREVO_API_URL, {
+      method: "POST",
+      headers: {
+        "api-key": apiKey,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        sender,
+        to: [{ email: recipient }],
+        subject,
+        htmlContent: html,
+        textContent: text,
+      }),
+      signal: controller.signal,
+    });
+
+    const responseText = await response.text();
+    if (!response.ok) {
+      throw new Error(`Brevo API ${response.status}: ${responseText}`);
+    }
+
+    let payload = null;
+    try {
+      payload = responseText ? JSON.parse(responseText) : null;
+    } catch (error) {
+      payload = null;
+    }
+
+    return {
+      sent: true,
+      messageId: payload?.messageId || null,
+      provider: "brevo",
+    };
+  } finally {
+    clearTimeout(timeoutId);
+  }
 };
 
 module.exports = {
   sendEmail,
-  hasSmtpConfig,
+  hasMailConfig,
+  hasSmtpConfig: hasMailConfig,
 };

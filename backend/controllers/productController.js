@@ -93,12 +93,22 @@ const notifyAdminForListingReview = async ({ req, product }) => {
     rejectUrl,
   });
 
-  await sendEmail({
+  const result = await sendEmail({
     to: recipient,
     subject,
     html,
     text,
   });
+
+  if (!result?.sent) {
+    throw new Error(result?.reason || "Listing review email was not sent");
+  }
+
+  if (result?.messageId) {
+    console.log(
+      `Listing review email queued via ${result.provider}: ${result.messageId}`,
+    );
+  }
 };
 
 const createProduct = asyncHandler(async (req, res) => {

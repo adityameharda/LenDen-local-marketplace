@@ -144,14 +144,11 @@ Create a .env file in the project root.
 - LISTING_REVIEW_TOKEN_SECRET (optional, falls back to JWT_SECRET)
 - LISTING_REVIEW_TOKEN_EXPIRES_IN (default: 3d)
 
-### SMTP email settings (required for sending emails)
+### Brevo email settings (required for sending emails)
 
-- SMTP_HOST
-- SMTP_PORT
-- SMTP_USER
-- SMTP_PASS
-- SMTP_SECURE (true/false, optional; auto true when port 465)
-- MAIL_FROM (optional, defaults to SMTP_USER)
+- BREVO_API_KEY
+- MAIL_FROM (for example: "LeniDeni <noreply@your-domain.com>")
+- BREVO_TIMEOUT_MS (optional, default: 30000)
 
 ### Cloudinary (required only if uploading images)
 
@@ -188,13 +185,10 @@ PUBLIC_BASE_URL=http://localhost:5000
 LISTING_REVIEW_TOKEN_SECRET=another_long_random_secret
 LISTING_REVIEW_TOKEN_EXPIRES_IN=3d
 
-# SMTP
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your_email@gmail.com
-SMTP_PASS=your_app_password
-SMTP_SECURE=false
-MAIL_FROM="LeniDeni <your_email@gmail.com>"
+# Brevo
+BREVO_API_KEY=your_brevo_api_key
+MAIL_FROM="LeniDeni <noreply@your-domain.com>"
+BREVO_TIMEOUT_MS=30000
 ```
 
 ## Running the Application
