@@ -983,6 +983,23 @@ img {
   font-weight: 400;
 }
 
+.report-action-select {
+  background: #ffffff !important;
+  color: #1a1c1b !important;
+  border: 1px solid #6e7979 !important;
+  font-weight: 700;
+}
+
+.report-action-select option {
+  background: #ffffff;
+  color: #1a1c1b;
+}
+
+.report-action-select:focus {
+  border-color: #006565 !important;
+  box-shadow: 0 0 0 3px rgba(0, 101, 101, 0.14);
+}
+
 textarea.input {
   min-height: 112px;
   line-height: 1.45;
@@ -1528,6 +1545,42 @@ textarea.input {
 .status-pill.pending {
   background: rgba(164, 60, 18, 0.15);
   color: var(--secondary);
+}
+
+.report-severity-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.report-severity-badge.critical {
+  color: #7f1d1d;
+  background: #fee2e2;
+  border-color: #fecaca;
+}
+
+.report-severity-badge.high {
+  color: #9a3412;
+  background: #ffedd5;
+  border-color: #fed7aa;
+}
+
+.report-severity-badge.medium {
+  color: #854d0e;
+  background: #fef9c3;
+  border-color: #fde68a;
+}
+
+.report-severity-badge.low {
+  color: #155e75;
+  background: #cffafe;
+  border-color: #a5f3fc;
 }
 
 .loader {

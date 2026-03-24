@@ -268,6 +268,11 @@ All API routes are under /api.
 - PATCH /api/messages/:id
 - DELETE /api/messages/:id
 
+### Reports
+
+- POST /api/reports/listings/:id
+- POST /api/reports/users/:id
+
 ### Admin (admin-only)
 
 - GET /api/admin/stats
@@ -278,6 +283,8 @@ All API routes are under /api.
 - PATCH /api/admin/listings/:id/approve
 - PATCH /api/admin/listings/:id/reject
 - DELETE /api/admin/listings/:id
+- GET /api/admin/reports
+- PATCH /api/admin/reports/:id (body: action=resolve|dismiss, optional enforcementAction)
 
 ## Business Rules and Access Control
 

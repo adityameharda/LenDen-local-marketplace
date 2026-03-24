@@ -18,9 +18,32 @@ const signToken = (user) =>
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   });
 
+const buildAuthResponse = (user) => {
+  const token = signToken(user);
+
+  return {
+    expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+    token,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+    },
+  };
+};
+
 const OTP_PURPOSE = "register";
 const OTP_TTL_MINUTES = Number(process.env.REGISTER_OTP_TTL_MINUTES || 10);
 const OTP_MAX_ATTEMPTS = Number(process.env.REGISTER_OTP_MAX_ATTEMPTS || 5);
+const PASSWORD_RESET_OTP_PURPOSE = "password-reset";
+const PASSWORD_RESET_OTP_TTL_MINUTES = Number(
+  process.env.PASSWORD_RESET_OTP_TTL_MINUTES || 10,
+);
+const PASSWORD_RESET_OTP_MAX_ATTEMPTS = Number(
+  process.env.PASSWORD_RESET_OTP_MAX_ATTEMPTS || 5,
+);
 
 const generateSixDigitOtp = () =>
   String(Math.floor(100000 + Math.random() * 900000));
@@ -46,6 +69,21 @@ const buildRegistrationOtpEmail = ({ otp }) => {
     </div>
   `;
   const text = `Your LeniDeni verification OTP is ${otp}. It expires in ${OTP_TTL_MINUTES} minutes.`;
+  return { subject, html, text };
+};
+
+const buildPasswordResetOtpEmail = ({ otp }) => {
+  const subject = "Reset your password - LeniDeni";
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.5;color:#1f2937">
+      <h2 style="margin:0 0 12px">Password reset code</h2>
+      <p style="margin:0 0 14px">Use this OTP to reset your LeniDeni password:</p>
+      <div style="font-size:28px;font-weight:700;letter-spacing:4px;margin:0 0 14px">${otp}</div>
+      <p style="margin:0 0 8px">This code expires in ${PASSWORD_RESET_OTP_TTL_MINUTES} minutes.</p>
+      <p style="margin:0">If you did not request this, you can ignore this email.</p>
+    </div>
+  `;
+  const text = `Your LeniDeni password reset OTP is ${otp}. It expires in ${PASSWORD_RESET_OTP_TTL_MINUTES} minutes.`;
   return { subject, html, text };
 };
 
@@ -185,17 +223,7 @@ const verifyRegisterOtpAndRegister = asyncHandler(async (req, res) => {
 
   await EmailOtp.deleteOne({ _id: otpDoc._id });
 
-  const token = signToken(user);
-  res.status(201).json({
-    token,
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      role: user.role,
-    },
-  });
+  res.status(201).json(buildAuthResponse(user));
 });
 
 const login = asyncHandler(async (req, res) => {
@@ -224,17 +252,115 @@ const login = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Invalid credentials");
   }
 
-  const token = signToken(user);
-  res.json({
-    token,
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      role: user.role,
+  res.json(buildAuthResponse(user));
+});
+
+const requestPasswordResetOtp = asyncHandler(async (req, res) => {
+  const normalizedEmail = normalizeEmail(req.body.email);
+
+  if (!normalizedEmail) {
+    throw new ApiError(400, "Email is required");
+  }
+
+  const user = await User.findOne({ email: normalizedEmail });
+  if (!user) {
+    throw new ApiError(404, "Email does not exist");
+  }
+
+  const otp = generateSixDigitOtp();
+  const codeHash = await bcrypt.hash(otp, 10);
+  const expiresAt = new Date(
+    Date.now() + PASSWORD_RESET_OTP_TTL_MINUTES * 60 * 1000,
+  );
+
+  await EmailOtp.findOneAndUpdate(
+    { email: normalizedEmail, purpose: PASSWORD_RESET_OTP_PURPOSE },
+    {
+      $set: {
+        codeHash,
+        expiresAt,
+        attempts: 0,
+        lastSentAt: new Date(),
+      },
     },
+    { upsert: true, new: true, setDefaultsOnInsert: true },
+  );
+
+  const { subject, html, text } = buildPasswordResetOtpEmail({ otp });
+  const result = await sendEmail({
+    to: normalizedEmail,
+    subject,
+    html,
+    text,
+  });
+
+  if (!result?.sent) {
+    throw new ApiError(
+      500,
+      result?.reason || "Failed to send password reset OTP",
+    );
+  }
+
+  res.json({
+    message: `OTP has been sent to your email. It is valid for ${PASSWORD_RESET_OTP_TTL_MINUTES} minutes.`,
+    expiresInMinutes: PASSWORD_RESET_OTP_TTL_MINUTES,
   });
 });
 
-module.exports = { requestRegisterOtp, verifyRegisterOtpAndRegister, login };
+const resetPasswordWithOtp = asyncHandler(async (req, res) => {
+  const normalizedEmail = normalizeEmail(req.body.email);
+  const otp = String(req.body.otp || "").trim();
+  const newPassword = String(req.body.newPassword || "");
+
+  if (!normalizedEmail) {
+    throw new ApiError(400, "Email is required");
+  }
+  if (!/^\d{6}$/.test(otp)) {
+    throw new ApiError(400, "Valid 6-digit OTP is required");
+  }
+  if (newPassword.length < 6) {
+    throw new ApiError(400, "New password must be at least 6 characters");
+  }
+
+  const user = await User.findOne({ email: normalizedEmail });
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const otpDoc = await EmailOtp.findOne({
+    email: normalizedEmail,
+    purpose: PASSWORD_RESET_OTP_PURPOSE,
+  });
+
+  if (!otpDoc || otpDoc.expiresAt.getTime() < Date.now()) {
+    throw new ApiError(
+      400,
+      "OTP expired or not found. Please request a new password reset OTP",
+    );
+  }
+
+  if ((otpDoc.attempts || 0) >= PASSWORD_RESET_OTP_MAX_ATTEMPTS) {
+    throw new ApiError(429, "Too many invalid OTP attempts. Request a new OTP");
+  }
+
+  const isOtpMatch = await bcrypt.compare(otp, otpDoc.codeHash);
+  if (!isOtpMatch) {
+    otpDoc.attempts = (otpDoc.attempts || 0) + 1;
+    await otpDoc.save();
+    throw new ApiError(400, "Invalid OTP");
+  }
+
+  user.password = newPassword;
+  await user.save();
+  await EmailOtp.deleteOne({ _id: otpDoc._id });
+
+  res.json({ message: "Password reset successful. You can now log in." });
+});
+
+module.exports = {
+  requestRegisterOtp,
+  verifyRegisterOtpAndRegister,
+  requestPasswordResetOtp,
+  resetPasswordWithOtp,
+  login,
+};

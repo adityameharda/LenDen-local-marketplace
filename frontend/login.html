@@ -104,6 +104,107 @@
             Sign In
           </button>
         </form>
+        <div style="margin-top: 14px; text-align: right">
+          <button
+            id="toggleForgotPassword"
+            type="button"
+            style="
+              border: none;
+              background: transparent;
+              color: var(--primary);
+              font-weight: 600;
+              cursor: pointer;
+              padding: 0;
+            "
+          >
+            Forgot password?
+          </button>
+        </div>
+        <form
+          id="forgotPasswordForm"
+          class="form-grid"
+          style="
+            display: none;
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid var(--outline-variant);
+          "
+        >
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label
+              style="
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: var(--on-surface-variant);
+              "
+              >Account Email</label
+            >
+            <input
+              class="input"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              autocomplete="email"
+              required
+            />
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center">
+            <input
+              class="input"
+              name="otp"
+              type="text"
+              inputmode="numeric"
+              maxlength="6"
+              pattern="[0-9]{6}"
+              placeholder="6-digit OTP"
+              required
+              style="flex: 1"
+            />
+            <button
+              class="btn secondary"
+              type="button"
+              id="sendResetOtpBtn"
+              style="white-space: nowrap; height: 44px"
+            >
+              Send OTP
+            </button>
+          </div>
+          <p
+            id="resetOtpTimer"
+            class="meta"
+            style="margin: -4px 0 0; color: var(--secondary); display: none"
+          ></p>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label
+              style="
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: var(--on-surface-variant);
+              "
+              >New Password</label
+            >
+            <input
+              class="input"
+              name="newPassword"
+              type="password"
+              placeholder="Enter new password"
+              minlength="6"
+              autocomplete="new-password"
+              required
+            />
+          </div>
+          <button
+            class="btn"
+            type="submit"
+            style="height: 44px; font-size: 15px"
+          >
+            Reset Password
+          </button>
+        </form>
         <div id="authLoader" class="loader">✓ Authenticating...</div>
         <p id="authNotice" class="notice"></p>
         <div

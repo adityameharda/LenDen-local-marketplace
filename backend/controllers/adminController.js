@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const Product = require("../models/Product");
 const Admin = require("../models/Admin");
+const Report = require("../models/Report");
 const ApiError = require("../utils/apiError");
 const asyncHandler = require("../utils/asyncHandler");
 const {
@@ -172,17 +173,230 @@ const removeListing = asyncHandler(async (req, res) => {
   res.json({ message: "Listing removed" });
 });
 
-const getStats = asyncHandler(async (req, res) => {
-  const [users, listings, blockedUsers, pendingListings] = await Promise.all([
-    User.countDocuments({ role: "user" }),
-    Product.countDocuments(),
-    User.countDocuments({ isBlocked: true }),
-    Product.countDocuments({ isApproved: false }),
+const getAllowedEnforcementActions = (targetType) => {
+  if (targetType === "user") {
+    return ["none", "block-user"];
+  }
+
+  if (targetType === "listing") {
+    return [
+      "none",
+      "block-user",
+      "remove-listing",
+      "remove-listing-and-block-user",
+    ];
+  }
+
+  return ["none"];
+};
+
+const resolveReportTargetUserId = async (report) => {
+  let targetUserId = report.targetUser ? String(report.targetUser) : "";
+
+  if (!targetUserId && report.targetListing) {
+    const listing = await Product.findById(report.targetListing).select(
+      "seller",
+    );
+    if (listing?.seller) {
+      targetUserId = String(listing.seller);
+    }
+  }
+
+  return targetUserId;
+};
+
+const ensureBlockableUser = async (targetUserId) => {
+  if (!targetUserId) {
+    throw new ApiError(400, "No user target available for blocking");
+  }
+
+  const targetUser = await User.findById(targetUserId);
+  if (!targetUser) {
+    throw new ApiError(404, "Target user not found for blocking");
+  }
+
+  return targetUser;
+};
+
+const applyReportEnforcement = async ({ report, enforcementAction }) => {
+  const effects = [];
+
+  const needsBlock =
+    enforcementAction === "block-user" ||
+    enforcementAction === "remove-listing-and-block-user";
+  const needsListingRemoval =
+    enforcementAction === "remove-listing" ||
+    enforcementAction === "remove-listing-and-block-user";
+
+  if (needsListingRemoval) {
+    if (!report.targetListing) {
+      throw new ApiError(400, "No listing target available for removal");
+    }
+
+    const listing = await Product.findById(report.targetListing);
+    if (listing) {
+      await listing.deleteOne();
+      effects.push("listing removed");
+    } else {
+      effects.push("listing already removed");
+    }
+  }
+
+  if (needsBlock) {
+    const targetUserId = await resolveReportTargetUserId(report);
+    const targetUser = await ensureBlockableUser(targetUserId);
+
+    if (!targetUser.isBlocked) {
+      targetUser.isBlocked = true;
+      await targetUser.save();
+      effects.push("user blocked");
+    } else {
+      effects.push("user already blocked");
+    }
+  }
+
+  return effects.length ? effects.join("; ") : "No enforcement applied";
+};
+
+const listReports = asyncHandler(async (req, res) => {
+  const status = String(req.query.status || "")
+    .trim()
+    .toLowerCase();
+  const query = status ? { status } : {};
+
+  const reports = await Report.find(query)
+    .populate("reporter", "name email phone")
+    .populate("targetUser", "name email phone")
+    .populate("targetListing", "title category status")
+    .populate("reviewedBy", "name email")
+    .sort({ createdAt: -1 });
+
+  res.json(reports);
+});
+
+const parseReviewAction = (req) => {
+  const action = String(req.body?.action || "")
+    .trim()
+    .toLowerCase();
+
+  if (!["resolve", "dismiss"].includes(action)) {
+    throw new ApiError(400, "Invalid action. Use resolve or dismiss.");
+  }
+
+  const resolutionNote = String(req.body?.resolutionNote || "").trim();
+  const enforcementAction = String(req.body?.enforcementAction || "none")
+    .trim()
+    .toLowerCase();
+
+  return { action, resolutionNote, enforcementAction };
+};
+
+const validateReviewAction = ({ report, action, enforcementAction }) => {
+  const allowedEnforcementActions = getAllowedEnforcementActions(
+    report.targetType,
+  );
+
+  if (!allowedEnforcementActions.includes(enforcementAction)) {
+    throw new ApiError(
+      400,
+      `Invalid enforcement action for ${report.targetType} report`,
+    );
+  }
+
+  if (action === "dismiss" && enforcementAction !== "none") {
+    throw new ApiError(400, "Dismissed reports cannot apply enforcement");
+  }
+};
+
+const applyReviewToReport = ({
+  report,
+  action,
+  resolutionNote,
+  enforcementAction,
+  enforcementSummary,
+  reviewerId,
+}) => {
+  report.status = action === "resolve" ? "resolved" : "dismissed";
+  report.resolutionNote = resolutionNote;
+  report.enforcementAction = action === "resolve" ? enforcementAction : "none";
+  report.enforcementSummary =
+    action === "resolve" ? enforcementSummary : "No enforcement applied";
+  report.enforcementAppliedAt = action === "resolve" ? new Date() : null;
+  report.reviewedBy = reviewerId;
+  report.reviewedAt = new Date();
+};
+
+const populateReviewedReport = async (report) => {
+  await report.populate([
+    { path: "reporter", select: "name email phone" },
+    { path: "targetUser", select: "name email phone" },
+    { path: "targetListing", select: "title category status" },
+    { path: "reviewedBy", select: "name email" },
   ]);
+};
+
+const reviewReport = asyncHandler(async (req, res) => {
+  const report = await Report.findById(req.params.id);
+  if (!report) {
+    throw new ApiError(404, "Report not found");
+  }
+
+  if (report.status !== "open") {
+    throw new ApiError(409, "Report already reviewed");
+  }
+
+  const { action, resolutionNote, enforcementAction } = parseReviewAction(req);
+  validateReviewAction({ report, action, enforcementAction });
+
+  let enforcementSummary = "No enforcement applied";
+  if (action === "resolve") {
+    enforcementSummary = await applyReportEnforcement({
+      report,
+      enforcementAction,
+    });
+  }
+
+  applyReviewToReport({
+    report,
+    action,
+    resolutionNote,
+    enforcementAction,
+    enforcementSummary,
+    reviewerId: req.user._id,
+  });
+  await report.save();
+
+  await populateReviewedReport(report);
+
+  res.json({
+    message:
+      action === "resolve"
+        ? `Report marked as resolved (${report.enforcementSummary})`
+        : "Report dismissed",
+    report,
+  });
+});
+
+const getStats = asyncHandler(async (req, res) => {
+  const [users, listings, blockedUsers, pendingListings, openReports] =
+    await Promise.all([
+      User.countDocuments({ role: "user" }),
+      Product.countDocuments(),
+      User.countDocuments({ isBlocked: true }),
+      Product.countDocuments({ isApproved: false }),
+      Report.countDocuments({ status: "open" }),
+    ]);
 
   const admins = await Admin.countDocuments();
 
-  res.json({ users, admins, listings, blockedUsers, pendingListings });
+  res.json({
+    users,
+    admins,
+    listings,
+    blockedUsers,
+    pendingListings,
+    openReports,
+  });
 });
 
 module.exports = {
@@ -194,5 +408,7 @@ module.exports = {
   rejectListing,
   reviewListingByEmailAction,
   removeListing,
+  listReports,
+  reviewReport,
   getStats,
 };

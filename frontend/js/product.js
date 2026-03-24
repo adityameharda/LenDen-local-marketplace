@@ -1,5 +1,7 @@
 const productDetails = document.getElementById("productDetails");
 const favoriteBtn = document.getElementById("favoriteBtn");
+const reportListingBtn = document.getElementById("reportListingBtn");
+const reportSellerBtn = document.getElementById("reportSellerBtn");
 const productNotice = document.getElementById("productNotice");
 
 const urlParams = new URLSearchParams(window.location.search);
@@ -16,6 +18,15 @@ const contactForm = document.getElementById("contactForm");
 const contactMeta = document.getElementById("contactMeta");
 
 const getId = (value) => api.getEntityId(value);
+const getSellerId = () => getId(currentProduct?.seller);
+
+const ensureLoggedIn = () => {
+  if (currentUser) {
+    return true;
+  }
+  window.location.href = "/login.html";
+  return false;
+};
 
 const renderProductMedia = (images, safeTitle) => {
   const validImages = images.filter(Boolean);
@@ -121,6 +132,56 @@ const isBuyerViewing = () => {
   return getId(currentUser) === getId(currentProduct.buyer);
 };
 
+const REPORT_REASONS = [
+  "spam",
+  "scam",
+  "prohibited",
+  "harassment",
+  "fake",
+  "other",
+];
+
+const collectReportPayload = () => {
+  const reason = String(
+    window.prompt(
+      "Reason for report? Use one of: spam, scam, prohibited, harassment, fake, other",
+      "spam",
+    ) || "",
+  )
+    .trim()
+    .toLowerCase();
+
+  if (!REPORT_REASONS.includes(reason)) {
+    throw new Error("Please enter a valid report reason.");
+  }
+
+  const details = String(
+    window.prompt(
+      "Additional details (optional unless reason is 'other')",
+      "",
+    ) || "",
+  ).trim();
+
+  if (reason === "other" && !details) {
+    throw new Error("Details are required when reason is 'other'.");
+  }
+
+  return { reason, details };
+};
+
+const setupReportActions = () => {
+  if (!reportListingBtn || !reportSellerBtn || !currentProduct) {
+    return;
+  }
+
+  const sellerId = getSellerId();
+  const isOwner = currentUser && sellerId === getId(currentUser);
+  const canReport = Boolean(sellerId) && !isOwner;
+
+  reportListingBtn.style.display = canReport ? "" : "none";
+  reportSellerBtn.style.display = canReport ? "" : "none";
+};
+
 const setupListingAction = () => {
   if (!favoriteBtn || !currentProduct) {
     return;
@@ -165,35 +226,27 @@ const syncFavoriteState = async () => {
   );
 };
 
-const loadProduct = async () => {
-  if (!productDetails || !productId) {
-    return;
-  }
-
-  ui.showLoader("productLoader", true);
-  try {
-    const product = await api.request(`/api/products/${productId}`);
-    currentProduct = product;
-    const images = Array.isArray(product.images) ? product.images : [];
-    const locationText =
-      product.locationName ||
-      [product.location?.city, product.location?.state]
-        .filter(Boolean)
-        .join(", ");
-    const safeTitle = ui.escapeHtml(product.title);
-    const safeCategory = ui.escapeHtml(product.category);
-    const safeDescription = ui.escapeHtml(product.description);
-    const sellerLine = [
-      product.seller?.name || "Unknown",
-      product.seller?.phone || "",
-    ]
+const buildProductDetailsHtml = (product) => {
+  const images = Array.isArray(product.images) ? product.images : [];
+  const locationText =
+    product.locationName ||
+    [product.location?.city, product.location?.state]
       .filter(Boolean)
-      .join(" - ");
-    const canContactSeller =
-      Boolean(getId(product.seller)) &&
-      (!currentUser || getId(currentUser) !== getId(product.seller));
+      .join(", ");
+  const safeTitle = ui.escapeHtml(product.title);
+  const safeCategory = ui.escapeHtml(product.category);
+  const safeDescription = ui.escapeHtml(product.description);
+  const sellerLine = [
+    product.seller?.name || "Unknown",
+    product.seller?.phone || "",
+  ]
+    .filter(Boolean)
+    .join(" - ");
+  const canContactSeller =
+    Boolean(getSellerId()) &&
+    (!currentUser || getSellerId() !== getId(currentUser));
 
-    productDetails.innerHTML = `
+  return `
       <div class="product-layout">
         ${renderProductMedia(images, safeTitle)}
         <div class="product-info">
@@ -231,11 +284,24 @@ const loadProduct = async () => {
         </div>
       </div>
     `;
+};
+
+const loadProduct = async () => {
+  if (!productDetails || !productId) {
+    return;
+  }
+
+  ui.showLoader("productLoader", true);
+  try {
+    const product = await api.request(`/api/products/${productId}`);
+    currentProduct = product;
+    productDetails.innerHTML = buildProductDetailsHtml(product);
 
     contactSellerBtn = document.getElementById("contactSellerBtn");
     updateContactSeller();
     await syncFavoriteState();
     setupListingAction();
+    setupReportActions();
     initProductCarousel();
   } catch (error) {
     productDetails.innerHTML = `<div class='notice'>${error.message}</div>`;
@@ -254,7 +320,7 @@ const updateContactSeller = () => {
     return;
   }
 
-  const sellerId = getId(currentProduct.seller);
+  const sellerId = getSellerId();
   const isOwner = sellerId && sellerId === getId(currentUser);
   if (isOwner) {
     contactSellerBtn.style.display = "none";
@@ -311,8 +377,7 @@ if (favoriteBtn) {
         return;
       }
 
-      if (!currentUser) {
-        window.location.href = "/login.html";
+      if (!ensureLoggedIn()) {
         return;
       }
 
@@ -332,6 +397,60 @@ if (favoriteBtn) {
       isFavorite = true;
       setupListingAction();
       ui.setNotice("productNotice", "Saved to favorites");
+    } catch (error) {
+      ui.setNotice("productNotice", error.message);
+    }
+  });
+}
+
+const submitReport = async (targetType) => {
+  if (!currentProduct) {
+    return;
+  }
+
+  if (!ensureLoggedIn()) {
+    return;
+  }
+
+  const payload = collectReportPayload();
+
+  if (targetType === "listing") {
+    await api.request(`/api/reports/listings/${currentProduct._id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    ui.setNotice("productNotice", "Listing reported. Thank you.");
+    return;
+  }
+
+  const sellerId = getSellerId();
+  if (!sellerId) {
+    throw new Error("Seller not available for reporting.");
+  }
+
+  await api.request(`/api/reports/users/${sellerId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  ui.setNotice("productNotice", "Seller reported. Thank you.");
+};
+
+if (reportListingBtn) {
+  reportListingBtn.addEventListener("click", async () => {
+    try {
+      await submitReport("listing");
+    } catch (error) {
+      ui.setNotice("productNotice", error.message);
+    }
+  });
+}
+
+if (reportSellerBtn) {
+  reportSellerBtn.addEventListener("click", async () => {
+    try {
+      await submitReport("user");
     } catch (error) {
       ui.setNotice("productNotice", error.message);
     }
@@ -366,11 +485,10 @@ if (contactModal) {
 if (contactForm) {
   contactForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (!currentUser) {
-      window.location.href = "/login.html";
+    if (!ensureLoggedIn()) {
       return;
     }
-    const sellerId = getId(currentProduct?.seller);
+    const sellerId = getSellerId();
     if (!sellerId) {
       return;
     }
@@ -405,8 +523,7 @@ if (contactForm) {
 
 document.addEventListener("click", (event) => {
   if (event.target?.id === "contactSellerBtn") {
-    if (!currentUser) {
-      window.location.href = "/login.html";
+    if (!ensureLoggedIn()) {
       return;
     }
     if (isOwnerViewing()) {

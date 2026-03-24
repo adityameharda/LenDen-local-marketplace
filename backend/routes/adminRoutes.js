@@ -8,6 +8,8 @@ const {
   rejectListing,
   reviewListingByEmailAction,
   removeListing,
+  listReports,
+  reviewReport,
   getStats,
 } = require("../controllers/adminController");
 const { protect } = require("../middleware/authMiddleware");
@@ -26,6 +28,8 @@ router.get("/listings", listListings);
 router.patch("/listings/:id/approve", approveListing);
 router.patch("/listings/:id/reject", rejectListing);
 router.delete("/listings/:id", removeListing);
+router.get("/reports", listReports);
+router.patch("/reports/:id", reviewReport);
 router.get("/stats", getStats);
 
 module.exports = router;

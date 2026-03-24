@@ -9,6 +9,7 @@ const productRoutes = require("./routes/productRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const favoriteRoutes = require("./routes/favoriteRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const reportRoutes = require("./routes/reportRoutes");
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
@@ -26,6 +27,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/favorites", favoriteRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/reports", reportRoutes);
 
 app.use(errorHandler);
 
