@@ -1120,6 +1120,22 @@ textarea.input {
   max-width: 440px;
 }
 
+.auth-page .form-card.register-form-card {
+  max-width: 860px;
+}
+
+.register-form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 16px;
+  row-gap: 16px;
+}
+
+.register-form-grid > button,
+.register-form-grid > #authLoader,
+.register-form-grid > #authNotice {
+  grid-column: 1 / -1;
+}
+
 .auth-shell {
   min-height: calc(100vh - 100px);
   display: grid;
@@ -1962,5 +1978,13 @@ textarea.input {
     display: block;
     overflow-x: auto;
     white-space: nowrap;
+  }
+
+  .auth-page .form-card.register-form-card {
+    max-width: 100%;
+  }
+
+  .register-form-grid {
+    grid-template-columns: 1fr;
   }
 }

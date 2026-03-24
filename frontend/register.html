@@ -40,7 +40,7 @@
     </header>
 
     <main class="container auth-shell">
-      <section class="form-card">
+      <section class="form-card register-form-card">
         <div style="margin-bottom: 24px">
           <h2
             style="
@@ -56,8 +56,11 @@
             Join LeniDeni and start selling or buying in your community.
           </p>
         </div>
-        <form id="registerForm" class="form-grid">
-          <div style="display: flex; flex-direction: column; gap: 6px">
+        <form id="registerForm" class="form-grid register-form-grid">
+          <div
+            class="register-field"
+            style="display: flex; flex-direction: column; gap: 6px"
+          >
             <label
               style="
                 font-size: 12px;
@@ -76,7 +79,10 @@
               required
             />
           </div>
-          <div style="display: flex; flex-direction: column; gap: 6px">
+          <div
+            class="register-field"
+            style="display: flex; flex-direction: column; gap: 6px"
+          >
             <label
               style="
                 font-size: 12px;
@@ -87,15 +93,55 @@
               "
               >Email</label
             >
+            <div style="display: flex; gap: 8px; align-items: center">
+              <input
+                class="input"
+                name="email"
+                type="email"
+                placeholder="you@example.com"
+                autocomplete="email"
+                required
+                style="flex: 1"
+              />
+              <button
+                class="btn secondary"
+                type="button"
+                id="sendOtpBtn"
+                style="white-space: nowrap; height: 44px"
+              >
+                Send OTP
+              </button>
+            </div>
+          </div>
+          <div
+            class="register-field"
+            style="display: flex; flex-direction: column; gap: 6px"
+          >
+            <label
+              style="
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: var(--on-surface-variant);
+              "
+              >Verification Code</label
+            >
             <input
               class="input"
-              name="email"
-              type="email"
-              placeholder="you@example.com"
-              autocomplete="email"
+              name="otp"
+              type="text"
+              inputmode="numeric"
+              maxlength="6"
+              pattern="[0-9]{6}"
+              placeholder="Enter 6-digit OTP"
+              required
             />
           </div>
-          <div style="display: flex; flex-direction: column; gap: 6px">
+          <div
+            class="register-field"
+            style="display: flex; flex-direction: column; gap: 6px"
+          >
             <label
               style="
                 font-size: 12px;
@@ -113,7 +159,10 @@
               autocomplete="tel"
             />
           </div>
-          <div style="display: flex; flex-direction: column; gap: 6px">
+          <div
+            class="register-field"
+            style="display: flex; flex-direction: column; gap: 6px"
+          >
             <label
               style="
                 font-size: 12px;
@@ -131,7 +180,10 @@
               autocomplete="address-level2"
             />
           </div>
-          <div style="display: flex; flex-direction: column; gap: 6px">
+          <div
+            class="register-field"
+            style="display: flex; flex-direction: column; gap: 6px"
+          >
             <label
               style="
                 font-size: 12px;
@@ -149,7 +201,10 @@
               autocomplete="address-level1"
             />
           </div>
-          <div style="display: flex; flex-direction: column; gap: 6px">
+          <div
+            class="register-field"
+            style="display: flex; flex-direction: column; gap: 6px"
+          >
             <label
               style="
                 font-size: 12px;
@@ -174,10 +229,10 @@
             type="submit"
             style="margin-top: 8px; height: 44px; font-size: 15px"
           >
-            Create Account
+            Verify OTP & Create Account
           </button>
         </form>
-        <div id="authLoader" class="loader">✓ Creating account...</div>
+        <div id="authLoader" class="loader">✓ Processing...</div>
         <p id="authNotice" class="notice"></p>
         <div
           style="
