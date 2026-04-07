@@ -1,1 +1,170 @@
 
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="LeniDeni admin control panel for managing users and listings."
+    />
+    <meta name="theme-color" content="#1555b8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Admin - LeniDeni</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <header class="navbar">
+      <div class="container">
+        <a class="brand" href="/index.html" aria-label="Go to home page">
+          <span>LeniDeni</span>
+        </a>
+        <nav class="nav-links">
+          <a href="/browse.html">Browse</a>
+          <a href="/dashboard.html" data-auth="user">Dashboard</a>
+          <a href="/my-listings.html" data-auth="user">My listings</a>
+          <a href="/messages.html" data-auth="user">Messages</a>
+          <a href="/admin.html" data-role="admin">Admin</a>
+          <a href="/login.html" data-auth="guest">Login</a>
+          <a href="/register.html" class="btn" data-auth="guest">Sell</a>
+          <a href="/dashboard.html?create=1" data-auth="user">Create listing</a>
+          <button
+            class="btn secondary"
+            type="button"
+            data-auth="user"
+            data-logout
+          >
+            Logout
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <div style="margin-bottom: 32px">
+        <h2
+          style="
+            font-size: 32px;
+            margin: 24px 0 8px 0;
+            font-weight: 800;
+            color: var(--on-surface);
+          "
+        >
+          Admin Control
+        </h2>
+        <p style="color: var(--on-surface-variant); margin: 0; font-size: 16px">
+          Manage users, listings, and platform settings.
+        </p>
+      </div>
+      <div id="adminLoader" class="loader">⏳ Loading admin data...</div>
+      <p id="adminNotice" class="notice"></p>
+
+      <section class="card-grid" id="statsGrid"></section>
+
+      <h3 class="section-title">Users</h3>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="userTable"></tbody>
+      </table>
+
+      <h3 class="section-title">Listings</h3>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="listingTable"></tbody>
+      </table>
+
+      <div
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          margin-top: 28px;
+          flex-wrap: wrap;
+        "
+      >
+        <h3 class="section-title" style="margin: 0">Reports</h3>
+        <div
+          style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap"
+        >
+          <label
+            for="reportEscalatedOnly"
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              color: var(--on-surface);
+              font-size: 13px;
+              font-weight: 700;
+              padding: 0 4px;
+            "
+          >
+            <input id="reportEscalatedOnly" type="checkbox" />
+            Escalate Critical
+          </label>
+          <input
+            id="reportSearchInput"
+            class="input"
+            type="search"
+            placeholder="Search reports"
+            style="height: 40px; min-width: 240px"
+            aria-label="Search reports"
+          />
+          <select
+            id="reportSortFilter"
+            class="input"
+            style="height: 40px; min-width: 180px"
+            aria-label="Sort reports"
+          >
+            <option value="newest" selected>Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="high-risk">High-risk first</option>
+          </select>
+          <select
+            id="reportStatusFilter"
+            class="input"
+            style="height: 40px; min-width: 180px"
+            aria-label="Filter reports by status"
+          >
+            <option value="open" selected>Open reports</option>
+            <option value="resolved">Resolved reports</option>
+            <option value="dismissed">Dismissed reports</option>
+            <option value="all">All reports</option>
+          </select>
+        </div>
+      </div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Reporter</th>
+            <th>Target</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="reportTable"></tbody>
+      </table>
+    </main>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/shared.js"></script>
+    <script src="/js/admin.js"></script>
+  </body>
+</html>
