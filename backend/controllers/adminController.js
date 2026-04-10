@@ -308,6 +308,7 @@ const validateReviewAction = ({ report, action, enforcementAction }) => {
   }
 };
 
+
 const applyReviewToReport = ({
   report,
   action,
@@ -326,6 +327,7 @@ const applyReviewToReport = ({
   report.reviewedAt = new Date();
 };
 
+
 const populateReviewedReport = async (report) => {
   await report.populate([
     { path: "reporter", select: "name email phone" },
@@ -335,19 +337,23 @@ const populateReviewedReport = async (report) => {
   ]);
 };
 
+
 const reviewReport = asyncHandler(async (req, res) => {
   const report = await Report.findById(req.params.id);
   if (!report) {
     throw new ApiError(404, "Report not found");
   }
 
+  
   if (report.status !== "open") {
     throw new ApiError(409, "Report already reviewed");
   }
 
+  
   const { action, resolutionNote, enforcementAction } = parseReviewAction(req);
   validateReviewAction({ report, action, enforcementAction });
 
+  
   let enforcementSummary = "No enforcement applied";
   if (action === "resolve") {
     enforcementSummary = await applyReportEnforcement({
@@ -356,6 +362,8 @@ const reviewReport = asyncHandler(async (req, res) => {
     });
   }
 
+
+  
   applyReviewToReport({
     report,
     action,
@@ -366,8 +374,12 @@ const reviewReport = asyncHandler(async (req, res) => {
   });
   await report.save();
 
+
+  
   await populateReviewedReport(report);
 
+
+  
   res.json({
     message:
       action === "resolve"
@@ -376,6 +388,8 @@ const reviewReport = asyncHandler(async (req, res) => {
     report,
   });
 });
+
+
 
 const getStats = asyncHandler(async (req, res) => {
   const [users, listings, blockedUsers, pendingListings, openReports] =
@@ -387,8 +401,11 @@ const getStats = asyncHandler(async (req, res) => {
       Report.countDocuments({ status: "open" }),
     ]);
 
+
+  
   const admins = await Admin.countDocuments();
 
+  
   res.json({
     users,
     admins,
@@ -398,6 +415,7 @@ const getStats = asyncHandler(async (req, res) => {
     openReports,
   });
 });
+
 
 module.exports = {
   getUsers,
